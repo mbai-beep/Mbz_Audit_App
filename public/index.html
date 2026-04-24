@@ -1,0 +1,1419 @@
+<!-- MB Store Audit App v1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MB Store Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sacramento&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f0;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.hidden{display:none!important}
+/* ── HEADER ── */
+.app-header{width:100%;max-width:600px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.app-header .title{font-size:17px;font-weight:700;letter-spacing:.3px}
+.app-header .subtitle{font-size:11px;opacity:.8;margin-top:1px}
+.app-header .user-badge{font-size:11px;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;text-align:right;max-width:140px;word-break:break-word}
+/* ── SECTIONS ── */
+.page{width:100%;max-width:600px;padding:0 0 80px;flex:1}
+/* ── LOGIN ── */
+#loginSection{width:100%;max-width:600px;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.login-hero{width:100%;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;padding:40px 20px 30px;text-align:center}
+.login-hero .logo{font-size:52px;margin-bottom:8px}
+.login-hero h1{font-size:22px;font-weight:700}
+.login-hero p{font-size:13px;opacity:.8;margin-top:4px}
+.login-card{background:#fff;border-radius:18px 18px 0 0;margin-top:-12px;width:100%;padding:28px 24px;flex:1}
+.login-card h2{font-size:18px;font-weight:700;color:#1b5e20;margin-bottom:4px}
+.login-card p{font-size:13px;color:#777;margin-bottom:20px}
+/* ── FORM ELEMENTS ── */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:15px;outline:none;transition:border-color .2s;background:#fff;color:#333;appearance:none;-webkit-appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#2e7d32}
+.field textarea{resize:vertical;min-height:60px;font-family:inherit;font-size:13px}
+.field .pw-wrap{position:relative}
+.field .pw-wrap input{padding-right:44px}
+.field .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#999;padding:4px}
+.field .input-hint{font-size:11px;color:#999;margin-top:4px}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.checkbox-row input[type=checkbox]{width:18px;height:18px;accent-color:#2e7d32;cursor:pointer}
+.checkbox-row label{font-size:14px;color:#555;cursor:pointer}
+/* ── BUTTONS ── */
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.btn-primary{background:linear-gradient(135deg,#2e7d32,#388e3c);color:#fff}
+.btn-primary:hover{background:linear-gradient(135deg,#1b5e20,#2e7d32)}
+.btn-primary:active{transform:scale(.98)}
+.btn-secondary{background:#f0f4f0;color:#2e7d32;border:1.5px solid #2e7d32}
+.btn-sm{width:auto;display:inline-block;padding:7px 14px;font-size:13px;border-radius:8px;font-weight:600}
+.btn-danger{background:#c62828;color:#fff}
+.btn-danger:hover{background:#b71c1c}
+.btn-gray{background:#f5f5f5;color:#555;border:1px solid #ddd}
+.link-btn{background:none;border:none;color:#2e7d32;font-size:14px;cursor:pointer;text-decoration:underline;padding:0}
+.link-btn:hover{color:#1b5e20}
+/* ── CARD ── */
+.card{background:#fff;border-radius:14px;padding:16px;margin:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.card-title{font-size:13px;font-weight:700;color:#1b5e20;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+/* ── NAV TABS ── */
+.nav-tabs{width:100%;max-width:600px;background:#fff;display:flex;box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:56px;z-index:99}
+.nav-tab{flex:1;padding:12px 6px;border:none;background:none;font-size:12px;font-weight:600;color:#999;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s}
+.nav-tab.active{color:#2e7d32;border-bottom-color:#2e7d32}
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:340px;text-align:center}
+#toast.show{opacity:1}
+#toast.success{background:#2e7d32}
+#toast.error{background:#c62828}
+/* ── AUDIT SUMMARY BAR ── */
+.audit-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 12px}
+.audit-stat{background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.audit-stat .num{font-size:18px;font-weight:800;color:#333}
+.audit-stat .lbl{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.audit-stat.done .num{color:#2e7d32}
+.audit-stat.not-done .num{color:#c62828}
+.audit-stat.pending .num{color:#f57f17}
+.audit-stat.pct .num{color:#1b5e20}
+/* ── AREA SECTION (accordion) ── */
+.area-section{background:#fff;border-radius:12px;margin:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden}
+.area-header{padding:12px 14px;background:#e8f5e9;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-left:4px solid #2e7d32}
+.area-header .name{font-size:13px;font-weight:700;color:#1b5e20;text-transform:uppercase;letter-spacing:.4px;flex:1}
+.area-header .tally{font-size:11px;color:#555;font-weight:600;background:#fff;padding:3px 8px;border-radius:12px;border:1px solid #c8e6c9}
+.area-header .arrow{margin-left:8px;color:#2e7d32;font-size:14px;transition:transform .2s}
+.area-section.collapsed .arrow{transform:rotate(-90deg)}
+.area-section.collapsed .area-body{display:none}
+.area-body{padding:0}
+/* ── AUDIT ITEM ── */
+.audit-item{padding:12px 14px;border-top:1px solid #f0f0f0}
+.audit-item:first-child{border-top:none}
+.audit-item.child-item{background:#fafafa;border-left:3px solid #c8e6c9;margin-left:12px}
+.audit-item .ai-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.audit-item .ai-text{font-size:13px;color:#222;font-weight:600;line-height:1.4;flex:1}
+.audit-item .ai-meta{font-size:11px;color:#777;margin-top:3px;display:flex;flex-wrap:wrap;gap:6px}
+.audit-item .ai-timeline{background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:600}
+.audit-item .ai-resp{background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px}
+.audit-item .ai-cat{background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;font-weight:600}
+.status-chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.status-chip{padding:6px 14px;border-radius:18px;border:1.5px solid #ccc;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;background:#fff;color:#555;user-select:none}
+.status-chip:active{transform:scale(.95)}
+.status-chip.yes.selected,.status-chip.done.selected{background:#2e7d32;border-color:#2e7d32;color:#fff}
+.status-chip.no.selected,.status-chip.not-done.selected{background:#c62828;border-color:#c62828;color:#fff}
+.status-chip.pending.selected{background:#f57f17;border-color:#f57f17;color:#fff}
+.audit-item .ai-remarks{margin-top:8px}
+.audit-item .ai-remarks textarea{width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:12px;font-family:inherit;outline:none;resize:vertical;min-height:44px}
+.audit-item .ai-remarks textarea:focus{border-color:#2e7d32}
+.audit-item .ai-resp-input{margin-top:6px}
+.audit-item .ai-resp-input input{width:100%;padding:7px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:12px;outline:none}
+.audit-item .ai-photos{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.audit-item .ai-photos img{width:54px;height:54px;object-fit:cover;border-radius:6px;border:1px solid #ddd}
+.audit-item .ai-photos .photo-add{width:54px;height:54px;border:2px dashed #bbb;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;font-size:20px;cursor:pointer;background:#fafafa}
+.audit-item .ai-saved{font-size:10px;color:#2e7d32;margin-top:4px;font-weight:600}
+/* ── HISTORY CARD ── */
+.hist-card{background:#fff;border-radius:12px;margin:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:14px;cursor:pointer;border-left:4px solid #2e7d32}
+.hist-card.in-progress{border-left-color:#f57f17}
+.hist-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hist-title{font-size:14px;font-weight:700;color:#222}
+.hist-meta{font-size:11px;color:#777;margin-top:3px}
+.hist-pct{font-size:22px;font-weight:800;color:#2e7d32;text-align:right}
+.hist-pct.low{color:#c62828}
+.hist-pct.mid{color:#f57f17}
+.hist-stats{display:flex;gap:10px;margin-top:8px;font-size:11px;color:#555}
+.hist-stats span strong{color:#333}
+.status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.status-pending{background:#fff8e1;color:#f57f17;border:1px solid #ffe082}
+.status-submitted{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+.status-in-progress{background:#fff3e0;color:#e65100;border:1px solid #ffcc80}
+/* ── REPORT TILES ── */
+.report-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 12px}
+.kpi-tile{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.kpi-tile .num{font-size:22px;font-weight:800;color:#1b5e20}
+.kpi-tile .lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
+.report-table{width:100%;border-collapse:collapse;font-size:12px}
+.report-table th,.report-table td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee}
+.report-table th{background:#f5f5f5;font-weight:700;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+.report-table td.num,.report-table th.num{text-align:right}
+.pct-bar{display:inline-block;width:60px;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
+.pct-bar-fill{height:100%;background:#2e7d32;transition:width .3s}
+.pct-bar-fill.low{background:#c62828}
+.pct-bar-fill.mid{background:#f57f17}
+/* ── FORGOT PASSWORD ── */
+.forgot-card{background:#fff;border-radius:14px;margin:16px 12px;padding:24px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.forgot-card h2{font-size:18px;font-weight:700;color:#1b5e20;margin-bottom:6px}
+.forgot-card p{font-size:13px;color:#777;margin-bottom:18px}
+.step-indicator{display:flex;gap:8px;margin-bottom:20px}
+.step-dot{width:28px;height:4px;border-radius:2px;background:#e0e0e0}
+.step-dot.active{background:#2e7d32}
+.otp-inputs{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.otp-inputs input{width:44px;height:52px;text-align:center;font-size:22px;font-weight:700;border:2px solid #ddd;border-radius:10px;outline:none}
+.otp-inputs input:focus{border-color:#2e7d32}
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:18px;padding:24px 20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:18px;font-weight:700;color:#1b5e20;margin-bottom:6px}
+.modal p{font-size:13px;color:#777;margin-bottom:18px}
+/* ── LOADERS ── */
+.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{text-align:center;padding:32px;color:#999;font-size:14px}
+/* ── MISC ── */
+.divider{height:1px;background:#f0f0f0;margin:10px 0}
+.section-gap{height:10px}
+.info-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.info-row span:first-child{color:#999}
+.info-row span:last-child{color:#333;font-weight:500}
+select option:disabled{color:#bbb}
+.filter-bar{display:flex;gap:6px;margin:10px 12px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{flex:1;min-width:110px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;background:#fff}
+</style>
+</head>
+<body>
+
+<div id="loginSection">
+  <div class="mb-logo-banner">
+    <img src="https://mbz.in/cdn/shop/files/logo-500-black_copy.png?v=1725614377&width=300"
+        class="mb-logo-img" alt="Meena Bazaar"
+        onerror="this.style.display='none';document.getElementById('logoFallback').style.display='block'">
+    <div id="logoFallback" class="mb-logo-text" style="display:none">Meena Bazaar</div>
+  </div>  <div class="login-hero">
+    <div class="logo">&#x1F6CD;</div>
+    <h1>MB Store Audit</h1>
+    <p>Showroom Audit Portal</p>
+  </div>
+  <div class="login-card">
+    <h2>Welcome Back</h2>
+    <p>Sign in to continue</p>
+    <div class="field">
+      <label>Employee ID</label>
+      <input type="number" id="loginEmpCode" placeholder="Enter your employee code" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="loginPwd" placeholder="Enter your password" id="loginPwd">
+        <button class="pw-toggle" onclick="togglePw('loginPwd',this)" tabindex="-1">&#128065;</button>
+      </div>
+      <div class="input-hint">First time? Use <strong>MB@&lt;YourEmployeeCode&gt;</strong> (e.g. MB@2266)</div>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="rememberMe">
+      <label for="rememberMe">Remember me for 30 days</label>
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()" id="loginBtn">Sign In</button>
+    <div style="text-align:center;margin-top:16px">
+      <button class="link-btn" onclick="showForgot()">Forgot Password?</button>
+    </div>
+  </div>
+</div>
+
+<div id="forgotSection" class="hidden page" style="padding:0">
+  <div class="app-header">
+    <div>
+      <div class="title">Forgot Password</div>
+    </div>
+    <button onclick="showLogin()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px">&#8592; Back</button>
+  </div>
+
+  <!-- Step 1 -->
+  <div id="forgotStep1" class="forgot-card">
+    <div class="step-indicator"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+    <h2>Step 1 of 3</h2>
+    <p>Enter your Employee ID and registered mobile number to receive an OTP.</p>
+    <div class="field"><label>Employee ID</label><input type="number" id="fpEmpCode" placeholder="Your employee code" inputmode="numeric"></div>
+    <div class="field"><label>Registered Mobile</label><input type="tel" id="fpMobile" placeholder="10-digit mobile number" maxlength="10" inputmode="tel"></div>
+    <button class="btn btn-primary" onclick="sendOTP()" id="sendOtpBtn">Send OTP</button>
+  </div>
+
+  <!-- Step 2 -->
+  <div id="forgotStep2" class="forgot-card hidden">
+    <div class="step-indicator"><div class="step-dot"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
+    <h2>Step 2 of 3</h2>
+    <p id="otpSentMsg">Enter the 6-digit OTP sent to your registered mobile.</p>
+    <div class="otp-inputs">
+      <input type="tel" maxlength="1" id="o1" oninput="otpMove(this,'o2')" onkeydown="otpBack(event,this,'')">
+      <input type="tel" maxlength="1" id="o2" oninput="otpMove(this,'o3')" onkeydown="otpBack(event,this,'o1')">
+      <input type="tel" maxlength="1" id="o3" oninput="otpMove(this,'o4')" onkeydown="otpBack(event,this,'o2')">
+      <input type="tel" maxlength="1" id="o4" oninput="otpMove(this,'o5')" onkeydown="otpBack(event,this,'o3')">
+      <input type="tel" maxlength="1" id="o5" oninput="otpMove(this,'o6')" onkeydown="otpBack(event,this,'o4')">
+      <input type="tel" maxlength="1" id="o6" oninput="otpMove(this,'')" onkeydown="otpBack(event,this,'o5')">
+    </div>
+    <button class="btn btn-primary" onclick="verifyOTP()" id="verifyOtpBtn">Verify OTP</button>
+    <div style="text-align:center;margin-top:12px">
+      <button class="link-btn" onclick="sendOTP()">Resend OTP</button>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div id="forgotStep3" class="forgot-card hidden">
+    <div class="step-indicator"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot active"></div></div>
+    <h2>Step 3 of 3</h2>
+    <p>Enter your new password.</p>
+    <div class="field"><label>New Password</label>
+      <div class="pw-wrap"><input type="password" id="fpNewPwd" placeholder="Min. 6 characters"><button class="pw-toggle" onclick="togglePw('fpNewPwd',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <div class="field"><label>Confirm Password</label>
+      <div class="pw-wrap"><input type="password" id="fpConfirmPwd" placeholder="Re-enter new password"><button class="pw-toggle" onclick="togglePw('fpConfirmPwd',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <button class="btn btn-primary" onclick="resetPassword()" id="resetPwdBtn">Set New Password</button>
+  </div>
+</div>
+
+<div id="appSection" class="hidden" style="width:100%;max-width:600px;display:flex;flex-direction:column;min-height:100vh">
+  <div class="app-header">
+    <div>
+      <div class="title">MB Store Audit</div>
+      <div class="subtitle" id="headerSubtitle">Showroom Audit Portal</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="user-badge" id="userBadge">Loading...</div>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px" title="Logout">&#x1F6AA;</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tabAudit" onclick="showView('audit')">&#x2714; Today's Audit</button>
+    <button class="nav-tab" id="tabHistory" onclick="showView('history')">&#x1F4C5; History</button>
+    <button class="nav-tab hidden" id="tabReports" onclick="showView('reports')">&#x1F4CA; Reports</button>
+    <button class="nav-tab hidden" id="tabAdmin" onclick="showView('admin')">&#x1F451; Admin</button>
+  </div>
+
+  <!-- ── TODAY'S AUDIT VIEW ── -->
+  <div id="auditView" class="page">
+    <!-- Audit header card -->
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">&#x1F3EA; Audit Session</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin-bottom:6px">
+          <label>Store</label>
+          <select id="auditStoreCode" onchange="onAuditStoreChange()">
+            <option value="">Select store...</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:6px">
+          <label>Audit Date</label>
+          <input type="date" id="auditDate" readonly>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:6px">
+        <label>Store Manager Name</label>
+        <input type="text" id="auditManagerName" placeholder="Manager on duty">
+      </div>
+      <div id="auditSessionInfo" style="font-size:11px;color:#777;margin-top:4px"></div>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="audit-summary" id="auditSummary" style="display:none">
+      <div class="audit-stat pct"><div class="num" id="statPct">0%</div><div class="lbl">Compliance</div></div>
+      <div class="audit-stat done"><div class="num" id="statDone">0</div><div class="lbl">Done</div></div>
+      <div class="audit-stat not-done"><div class="num" id="statNot">0</div><div class="lbl">Not Done</div></div>
+      <div class="audit-stat pending"><div class="num" id="statPend">0</div><div class="lbl">Pending</div></div>
+    </div>
+
+    <!-- Area-wise checklist -->
+    <div id="auditChecklist">
+      <div class="loading-text">&#x23F3; Loading today's audit...</div>
+    </div>
+
+    <!-- Submit -->
+    <div style="padding:0 12px 16px" id="auditSubmitWrap" class="hidden">
+      <button class="btn btn-primary" onclick="submitAudit()" id="submitAuditBtn">&#x2713; Submit Audit</button>
+      <div style="font-size:11px;color:#777;text-align:center;margin-top:8px">
+        Answers auto-save as you mark them. Submit when the audit is complete.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY VIEW ── -->
+  <div id="historyView" class="page hidden">
+    <div class="filter-bar">
+      <input type="date" id="histFrom" onchange="loadHistory()">
+      <input type="date" id="histTo" onchange="loadHistory()">
+      <select id="histStoreFilter" onchange="loadHistory()" style="max-width:180px">
+        <option value="">All stores</option>
+      </select>
+      <button class="btn btn-sm btn-secondary" onclick="loadHistory()" style="white-space:nowrap">&#x21BB; Refresh</button>
+    </div>
+    <div id="historyList"><div class="loading-text">&#x23F3; Loading history...</div></div>
+  </div>
+
+  <!-- ── REPORTS VIEW (manager/admin only) ── -->
+  <div id="reportsView" class="page hidden">
+    <div class="filter-bar">
+      <input type="date" id="rptFrom" onchange="loadReports()">
+      <input type="date" id="rptTo" onchange="loadReports()">
+      <button class="btn btn-sm btn-secondary" onclick="loadReports()" style="white-space:nowrap">&#x21BB; Refresh</button>
+    </div>
+    <div class="report-kpis" id="reportKpis"></div>
+    <div class="card">
+      <div class="card-title">&#x1F4C8; Compliance by Area</div>
+      <div id="reportByArea"><div class="loading-text">Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">&#x1F3EC; Performance by Store</div>
+      <div id="reportByStore"><div class="loading-text">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- ── ADMIN VIEW ── -->
+  <div id="adminView" class="page hidden">
+    <div style="padding:14px 12px">
+      <div style="margin-bottom:20px">
+        <button class="btn btn-primary" id="addEmpToggleBtn" onclick="showAddEmpForm()" style="width:100%;padding:12px 16px;font-size:0.95rem">&#x2795; Add New Employee</button>
+        <div id="addEmpForm" class="hidden" style="border:1px solid #ddd;border-radius:8px;padding:14px;margin-top:8px;background:#f9f9f9">
+          <h4 style="margin:0 0 12px;color:#1b5e20;font-size:0.9rem">New Employee Details</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field"><label>Employee ID *</label><input type="number" id="addEmpCode" placeholder="e.g. 1001"></div>
+            <div class="field"><label>Role</label><select id="addEmpRole"><option value="employee">Employee</option><option value="manager">Manager</option></select></div>
+          </div>
+          <div class="field"><label>Full Name *</label><input type="text" id="addEmpName" placeholder="Full name"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field"><label>Designation</label><input type="text" id="addEmpDesignation" placeholder="Sales Executive"></div>
+            <div class="field"><label>Mobile</label><input type="tel" id="addEmpMobile" placeholder="10-digit" maxlength="10"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field"><label>Store Name</label><input type="text" id="addEmpStoreName" placeholder="Store name"></div>
+            <div class="field"><label>Store Code</label><input type="text" id="addEmpStoreCode" placeholder="Store code"></div>
+          </div>
+          <div class="field"><label>Initial Password *</label>
+            <div style="position:relative">
+              <input type="password" id="addEmpPwd" placeholder="Min 6 characters" style="padding-right:36px">
+              <button type="button" onclick="var i=this.previousElementSibling;i.type=i.type==='password'?'text':'password'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:0.85rem">&#x1F441;</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-primary" id="addEmpSubmitBtn" onclick="submitAddEmployee()" style="flex:1">Add Employee</button>
+            <button class="btn" onclick="hideAddEmpForm()" style="background:#f5f5f5;color:#555;border:1px solid #ccc">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin:0 0 10px;font-size:0.95rem;color:#1b5e20">&#x1F50D; Manage Employee Access</h3>
+        <div style="display:flex;gap:8px">
+          <input type="number" id="searchEmpCode" placeholder="Enter Employee ID" style="flex:1;padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem" onkeydown="if(event.key==='Enter')searchEmployee()">
+          <button class="btn btn-primary" onclick="searchEmployee()" style="white-space:nowrap;padding:10px 16px">Search</button>
+        </div>
+        <div id="searchResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     CHANGE PASSWORD MODAL (first login)
+══════════════════════════════════════════════════════ -->
+<div id="changePwdModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>&#x1F511; Set Your Password</h3>
+    <p>Welcome! This is your first login. Please set a new personal password to continue.</p>
+    <div class="field"><label>Current Password</label>
+      <div class="pw-wrap"><input type="password" id="cpCurrent" placeholder="MB@YourCode (initial password)"><button class="pw-toggle" onclick="togglePw('cpCurrent',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <div class="field"><label>New Password</label>
+      <div class="pw-wrap"><input type="password" id="cpNew" placeholder="Min. 6 characters"><button class="pw-toggle" onclick="togglePw('cpNew',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <div class="field"><label>Confirm Password</label>
+      <div class="pw-wrap"><input type="password" id="cpConfirm" placeholder="Re-enter new password"><button class="pw-toggle" onclick="togglePw('cpConfirm',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <button class="btn btn-primary" onclick="doChangePassword()" id="cpBtn">Set Password</button>
+  </div>
+</div>
+
+<div id="expiredPwdModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>&#x1F512; Password Expired</h3>
+    <p>Your password has expired (passwords must be renewed every 60 days).<br>Please set a new password to continue.</p>
+    <div class="field"><label>Current Password</label>
+      <div class="pw-wrap"><input type="password" id="epCurrent" placeholder="Enter current password"><button class="pw-toggle" onclick="togglePw('epCurrent',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <div class="field"><label>New Password</label>
+      <div class="pw-wrap"><input type="password" id="epNew" placeholder="Min. 6 characters"><button class="pw-toggle" onclick="togglePw('epNew',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <div class="field"><label>Confirm New Password</label>
+      <div class="pw-wrap"><input type="password" id="epConfirm" placeholder="Re-enter new password"><button class="pw-toggle" onclick="togglePw('epConfirm',this)" tabindex="-1">&#128065;</button></div>
+    </div>
+    <button class="btn btn-primary" onclick="doExpiredPasswordChange()" id="epBtn">Set New Password</button>
+  </div>
+</div>
+
+<!-- T&C Modal -->
+<div id="tcModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:520px">
+    <h3>&#x1F4CB; Terms &amp; Conditions</h3>
+    <p style="font-size:0.85rem;line-height:1.7;color:#333;max-height:240px;overflow-y:auto;border:1px solid #e0e0e0;padding:14px;border-radius:6px;background:#fafafa;text-align:justify">
+      I hereby agree that all store, customer and operational data (including images, documents, audit records, contact details, and requirements) accessed through this app is strictly confidential and the exclusive property of Meena Bazaar. I will not copy, store, share, or misuse any data in any form. I will not share my login credentials, OTP, or password with anyone and will ensure my mobile device is secure. I understand that any unauthorized access, data misuse, credential sharing, or retention of data — even after exit — will result in strict disciplinary action, including termination and legal proceedings under applicable laws.
+    </p>
+    <p style="font-size:0.8rem;color:#888;margin-top:10px">By clicking <strong>I Accept</strong>, you agree to these Terms &amp; Conditions.</p>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" id="tcAcceptBtn" onclick="doAcceptTC()" style="flex:2">&#x2705; I Accept</button>
+      <button class="btn" onclick="doDeclineTC()" style="flex:1;background:#f5f5f5;color:#555;border:1px solid #ccc">Decline</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────
+let currentUser = null;
+let authToken = null;
+let _loginRemember = false;
+let allStores = [];
+let currentSession = null;   // { id, store_code, store_name, audit_date, status, ... }
+let checklistItems = [];     // Array of all items for the current session (active only)
+let answersMap = {};         // item_id -> { status, remarks, responsible_name, photo_urls:[] }
+let saveTimers = {};         // item_id -> timeout (for debounced autosave)
+let fpResetToken = '';
+let fpEmpCodeVal = '';
+
+// ─── AUTH STORAGE HELPERS (localStorage + cookie fallback for iOS) ───
+function saveAuthToken(tk) {
+  try { localStorage.setItem('mb_token', tk); } catch(e) {}
+  const d = new Date(Date.now() + 30*24*60*60*1000);
+  document.cookie = 'mb_tok=' + encodeURIComponent(tk) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+}
+function getAuthToken() {
+  try { const v = localStorage.getItem('mb_token'); if (v) return v; } catch(e) {}
+  const m = document.cookie.match(/(?:^|;\s*)mb_tok=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function clearAuthToken() {
+  try { localStorage.removeItem('mb_token'); } catch(e) {}
+  document.cookie = 'mb_tok=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+}
+
+// ─── INIT ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const saved = getAuthToken();
+  if (saved) {
+    authToken = saved;
+    try {
+      const r = await apiFetch('/api/auth?action=verify', 'GET');
+      if (r.valid) {
+        currentUser = r.user;
+        await initApp();
+        return;
+      }
+      clearAuthToken();
+    } catch {}
+  }
+  show('loginSection');
+});
+
+function driveImgUrl(u) {
+  if (!u) return '';
+  const m = u.match(/[?&]id=([^&]+)/);
+  return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w600' : u;
+}
+
+// ─── VIEW HELPERS ─────────────────────────────────────
+function show(id) {
+  ['loginSection','forgotSection','appSection'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
+  });
+  const el = document.getElementById(id);
+  if (el) { el.classList.remove('hidden'); el.style.display = ''; }
+  window.scrollTo(0, 0);
+}
+function showLogin() { show('loginSection'); }
+function showForgot() { show('forgotSection'); showForgotStep(1); }
+function showForgotStep(n) {
+  [1,2,3].forEach(i => document.getElementById('forgotStep'+i).classList.add('hidden'));
+  document.getElementById('forgotStep'+n).classList.remove('hidden');
+}
+function showView(v) {
+  ['audit','history','reports','admin'].forEach(name => {
+    const view = document.getElementById(name + 'View');
+    const tab = document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1));
+    if (view) view.classList.toggle('hidden', v !== name);
+    if (tab) tab.classList.toggle('active', v === name);
+  });
+  if (v === 'history') loadHistory();
+  if (v === 'reports') loadReports();
+  window.scrollTo(0, 0);
+}
+
+// ─── APP INIT ─────────────────────────────────────────
+async function initApp() {
+  show('appSection');
+  document.getElementById('userBadge').textContent = `${currentUser.empName}\n${currentUser.designation||''}`;
+  document.getElementById('headerSubtitle').textContent = currentUser.storeName || 'Showroom Audit Portal';
+
+  // RBAC — managers + admins see Reports; admins see Admin
+  if (currentUser.role === 'manager' || currentUser.role === 'admin') {
+    document.getElementById('tabReports').classList.remove('hidden');
+  }
+  if (currentUser.role === 'admin') {
+    document.getElementById('tabAdmin').classList.remove('hidden');
+  }
+
+  // Set today's date (IST)
+  document.getElementById('auditDate').value = todayIST();
+
+  await loadStores();
+  wireStoreSelectors();
+
+  // Pre-fill user's assigned store (employees locked; managers/admin can switch)
+  if (currentUser.storeCode) {
+    document.getElementById('auditStoreCode').value = currentUser.storeCode;
+  }
+  if (currentUser.role === 'employee') {
+    document.getElementById('auditStoreCode').disabled = true;
+  }
+  if (currentUser.storeName) {
+    document.getElementById('auditManagerName').placeholder =
+      currentUser.role === 'manager' ? (currentUser.empName + ' (you)') : 'Manager on duty';
+  }
+
+  if (currentUser.isFirstLogin) {
+    document.getElementById('changePwdModal').classList.remove('hidden');
+    return; // wait for pwd change before starting audit
+  }
+
+  // Auto-start today's audit session for the user's store
+  if (document.getElementById('auditStoreCode').value) {
+    await startOrResumeSession();
+  } else {
+    document.getElementById('auditChecklist').innerHTML =
+      '<div class="loading-text">Please select a store above to start the audit.</div>';
+  }
+}
+
+// IST today (YYYY-MM-DD)
+function todayIST() {
+  const now = new Date();
+  const ist = new Date(now.getTime() + (330*60000) - (now.getTimezoneOffset()*60000));
+  return ist.toISOString().slice(0,10);
+}
+
+// ─── STORES DROPDOWN ──────────────────────────────────
+async function loadStores() {
+  try {
+    const r = await apiFetch('/api/stores', 'GET');
+    allStores = r.stores || [];
+  } catch { allStores = []; }
+
+  const sel = document.getElementById('auditStoreCode');
+  const filter = document.getElementById('histStoreFilter');
+  [sel, filter].forEach(el => { while (el.options.length > 1) el.remove(1); });
+  allStores.forEach(s => {
+    const label = `${s.name} (${s.code})`;
+    sel.add(new Option(label, s.code));
+    filter.add(new Option(label, s.code));
+  });
+}
+function wireStoreSelectors() { /* reserved for future cross-wiring */ }
+
+async function onAuditStoreChange() {
+  const code = document.getElementById('auditStoreCode').value;
+  if (!code) return;
+  await startOrResumeSession();
+}
+
+// ─── START/RESUME AUDIT SESSION ───────────────────────
+async function startOrResumeSession() {
+  const storeCode = document.getElementById('auditStoreCode').value;
+  const managerName = document.getElementById('auditManagerName').value.trim() ||
+                     (currentUser.role === 'manager' ? currentUser.empName : '');
+  if (!storeCode) return showToast('Please select a store first', 'error');
+
+  document.getElementById('auditChecklist').innerHTML =
+    '<div class="loading-text">&#x23F3; Loading today\'s audit...</div>';
+
+  try {
+    const r = await apiFetch('/api/audits?action=start', 'POST', {
+      storeCode, managerName, auditDate: todayIST()
+    });
+    if (!r.success) return showToast(r.error || 'Failed to start audit', 'error');
+    currentSession = r.session;
+    // Fetch full session + items + answers
+    await loadSession(currentSession.id);
+  } catch(e) {
+    document.getElementById('auditChecklist').innerHTML =
+      '<div class="loading-text" style="color:#c62828">Network error. Please refresh.</div>';
+  }
+}
+
+async function loadSession(sessionId) {
+  try {
+    const r = await apiFetch('/api/audits?action=session&id=' + encodeURIComponent(sessionId), 'GET');
+    if (!r.success) return showToast(r.error || 'Failed to load session', 'error');
+    currentSession = r.session;
+    checklistItems = r.items || [];
+    answersMap = {};
+    (r.answers || []).forEach(a => {
+      let photos = [];
+      try { photos = JSON.parse(a.photo_urls || '[]'); } catch {}
+      answersMap[a.item_id] = {
+        status: a.status || 'Pending',
+        remarks: a.remarks || '',
+        responsible_name: a.responsible_name || '',
+        photo_urls: photos
+      };
+    });
+    renderAudit();
+    updateSummary();
+    document.getElementById('auditSummary').style.display = 'grid';
+    document.getElementById('auditSubmitWrap').classList.toggle('hidden',
+      currentSession.status === 'submitted');
+    const info = document.getElementById('auditSessionInfo');
+    if (currentSession.status === 'submitted') {
+      info.innerHTML = `&#x2705; <span style="color:#2e7d32;font-weight:700">Submitted on ${fmtDate(currentSession.submitted_at)}</span>`;
+    } else {
+      info.textContent = `Session: ${currentSession.id} • ${checklistItems.length} items`;
+    }
+    if (currentSession.manager_name) {
+      document.getElementById('auditManagerName').value = currentSession.manager_name;
+    }
+  } catch(e) {
+    document.getElementById('auditChecklist').innerHTML =
+      '<div class="loading-text" style="color:#c62828">Error loading session.</div>';
+  }
+}
+
+// ─── RENDER AREA-WISE CHECKLIST ───────────────────────
+function renderAudit() {
+  const wrap = document.getElementById('auditChecklist');
+  if (!checklistItems.length) {
+    wrap.innerHTML = '<div class="loading-text">No checklist items configured.</div>';
+    return;
+  }
+
+  // Group by area_tag, preserving sort_order
+  const byArea = {};
+  const areaOrder = [];
+  const children = {}; // parent_id -> [child items]
+  checklistItems.forEach(it => {
+    if (it.parent_id) {
+      if (!children[it.parent_id]) children[it.parent_id] = [];
+      children[it.parent_id].push(it);
+      return;
+    }
+    const area = it.area_tag || 'Other';
+    if (!byArea[area]) { byArea[area] = []; areaOrder.push(area); }
+    byArea[area].push(it);
+  });
+
+  const isLocked = currentSession && currentSession.status === 'submitted';
+  let html = '';
+  areaOrder.forEach(area => {
+    const items = byArea[area];
+    const tally = computeAreaTally(items, children);
+    html += `<div class="area-section" data-area="${esc(area)}">
+      <div class="area-header" onclick="toggleArea(this)">
+        <div class="name">${esc(area)}</div>
+        <div class="tally">${tally.done}/${tally.total} done</div>
+        <div class="arrow">&#x25BC;</div>
+      </div>
+      <div class="area-body">
+        ${items.map(it => renderItem(it, children[it.id] || [], isLocked)).join('')}
+      </div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function computeAreaTally(items, childrenByParent) {
+  let total = 0, done = 0;
+  items.forEach(it => {
+    total += 1;
+    const ans = answersMap[it.id];
+    if (ans && (ans.status === 'Done' || ans.status === 'Yes')) done += 1;
+    (childrenByParent[it.id] || []).forEach(ch => {
+      total += 1;
+      const cans = answersMap[ch.id];
+      if (cans && (cans.status === 'Done' || cans.status === 'Yes')) done += 1;
+    });
+  });
+  return { total, done };
+}
+
+function renderItem(it, childs, isLocked) {
+  const ans = answersMap[it.id] || { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
+  return renderSingle(it, ans, false, isLocked) +
+    childs.map(ch => {
+      const cans = answersMap[ch.id] || { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
+      return renderSingle(ch, cans, true, isLocked);
+    }).join('');
+}
+
+function renderSingle(it, ans, isChild, isLocked) {
+  const chipCls = (opt) => 'status-chip ' + opt.toLowerCase().replace(/\s+/g,'-') +
+    (ans.status === opt ? ' selected' : '');
+  const chips = ['Yes','No','Done','Pending'];
+  const disabled = isLocked ? 'disabled style="pointer-events:none;opacity:.7"' : '';
+  const photos = (ans.photo_urls || []).map(u =>
+    `<img src="${esc(driveImgUrl(u))}" alt="photo">`).join('');
+  const categoryBadge = it.category ?
+    `<span class="ai-cat">${esc(it.category)}</span>` : '';
+  const timelineBadge = it.timeline ?
+    `<span class="ai-timeline">&#x23F0; ${esc(it.timeline)}</span>` : '';
+  const respBadge = it.responsible ?
+    `<span class="ai-resp">&#x1F464; ${esc(it.responsible)}</span>` : '';
+
+  return `<div class="audit-item${isChild ? ' child-item' : ''}" data-item-id="${it.id}">
+    <div class="ai-head">
+      <div class="ai-text">${esc(it.action_text)}</div>
+    </div>
+    <div class="ai-meta">${categoryBadge}${timelineBadge}${respBadge}</div>
+    <div class="status-chips">
+      ${chips.map(c => `<span class="${chipCls(c)}" onclick="setStatus(${it.id},'${c}',this)" ${disabled}>${c}</span>`).join('')}
+    </div>
+    <div class="ai-remarks">
+      <textarea placeholder="Remarks / notes / reason (optional)" onchange="setRemarks(${it.id}, this.value)" oninput="queueSave(${it.id})" ${isLocked ? 'readonly' : ''}>${esc(ans.remarks)}</textarea>
+    </div>
+    <div class="ai-resp-input">
+      <input type="text" placeholder="Actual person who acted (override)" value="${esc(ans.responsible_name)}" onchange="setResponsible(${it.id}, this.value)" ${isLocked ? 'readonly' : ''}>
+    </div>
+    <div class="ai-photos" id="photos_${it.id}">
+      ${photos}
+      ${isLocked ? '' : `<label class="photo-add" title="Attach photo">&#x2B;
+        <input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadItemPhoto(${it.id}, this)">
+      </label>`}
+    </div>
+    <div class="ai-saved" id="saved_${it.id}"></div>
+  </div>`;
+}
+
+function toggleArea(headerEl) {
+  headerEl.parentElement.classList.toggle('collapsed');
+}
+
+// ─── ANSWER HANDLERS ──────────────────────────────────
+function setStatus(itemId, status, chipEl) {
+  if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
+  answersMap[itemId].status = status;
+  // Toggle chip UI
+  const container = chipEl.parentElement;
+  container.querySelectorAll('.status-chip').forEach(c => c.classList.remove('selected'));
+  chipEl.classList.add('selected');
+  saveAnswer(itemId, { status });
+}
+
+function setRemarks(itemId, remarks) {
+  if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
+  answersMap[itemId].remarks = remarks;
+  saveAnswer(itemId, { remarks });
+}
+function setResponsible(itemId, name) {
+  if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
+  answersMap[itemId].responsible_name = name;
+  saveAnswer(itemId, { responsibleName: name });
+}
+
+// Debounced autosave for textareas as user types
+function queueSave(itemId) {
+  if (saveTimers[itemId]) clearTimeout(saveTimers[itemId]);
+  saveTimers[itemId] = setTimeout(() => {
+    const ans = answersMap[itemId];
+    if (ans) saveAnswer(itemId, { remarks: ans.remarks });
+  }, 900);
+}
+
+async function saveAnswer(itemId, patch) {
+  if (!currentSession) return;
+  const saved = document.getElementById('saved_' + itemId);
+  if (saved) saved.textContent = 'Saving...';
+  try {
+    const r = await apiFetch('/api/audits?action=answer', 'POST', {
+      sessionId: currentSession.id, itemId, ...patch
+    });
+    if (!r.success) {
+      if (saved) saved.textContent = 'Save failed — retry';
+      return showToast(r.error || 'Save failed', 'error');
+    }
+    currentSession = r.session || currentSession;
+    if (saved) {
+      saved.textContent = '\u2713 Saved ' + new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+      setTimeout(() => { if (saved.textContent.startsWith('\u2713')) saved.textContent = ''; }, 3500);
+    }
+    updateSummary();
+    updateAreaTallies();
+  } catch(e) {
+    if (saved) saved.textContent = 'Network error';
+  }
+}
+
+function updateSummary() {
+  if (!currentSession) return;
+  document.getElementById('statPct').textContent = (currentSession.compliance_pct || 0) + '%';
+  document.getElementById('statDone').textContent = currentSession.done_count || 0;
+  document.getElementById('statNot').textContent = currentSession.not_done_count || 0;
+  document.getElementById('statPend').textContent = currentSession.pending_count || 0;
+}
+function updateAreaTallies() {
+  document.querySelectorAll('.area-section').forEach(sec => {
+    const area = sec.dataset.area;
+    const items = checklistItems.filter(i => (i.area_tag || 'Other') === area && !i.parent_id);
+    const children = {};
+    checklistItems.filter(i => i.parent_id).forEach(c => {
+      if (!children[c.parent_id]) children[c.parent_id] = [];
+      children[c.parent_id].push(c);
+    });
+    const t = computeAreaTally(items, children);
+    sec.querySelector('.tally').textContent = `${t.done}/${t.total} done`;
+  });
+}
+
+// ─── PHOTO UPLOAD PER ITEM ────────────────────────────
+async function uploadItemPhoto(itemId, inputEl) {
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+  const saved = document.getElementById('saved_' + itemId);
+  if (saved) saved.textContent = 'Uploading photo...';
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const fr = new FileReader(); fr.onload = e => res(e.target.result); fr.onerror = rej; fr.readAsDataURL(file);
+    });
+    const r = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+      body: JSON.stringify({ fileData: b64, fileName: 'audit_' + itemId + '_' + Date.now() + '.jpg', mimeType: file.type })
+    });
+    const d = await r.json();
+    if (!d.url) {
+      if (saved) saved.textContent = 'Upload failed';
+      return showToast('Photo upload failed', 'error');
+    }
+    if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
+    answersMap[itemId].photo_urls = (answersMap[itemId].photo_urls || []).concat([d.url]);
+    // Save to server
+    await saveAnswer(itemId, { photoUrls: answersMap[itemId].photo_urls });
+    // Append thumb
+    const grid = document.getElementById('photos_' + itemId);
+    const img = document.createElement('img');
+    img.src = driveImgUrl(d.url);
+    img.alt = 'photo';
+    grid.insertBefore(img, grid.querySelector('.photo-add'));
+  } catch(e) {
+    if (saved) saved.textContent = 'Upload failed';
+    showToast('Photo upload failed', 'error');
+  } finally {
+    inputEl.value = '';
+  }
+}
+
+// ─── SUBMIT AUDIT ─────────────────────────────────────
+async function submitAudit() {
+  if (!currentSession) return showToast('No active session', 'error');
+  const pending = currentSession.pending_count || 0;
+  if (pending > 0) {
+    if (!confirm(`${pending} item(s) are still Pending. Submit anyway?`)) return;
+  }
+  setLoading('submitAuditBtn', true, 'Submitting...');
+  try {
+    const r = await apiFetch('/api/audits?action=submit', 'POST', {
+      sessionId: currentSession.id,
+      managerName: document.getElementById('auditManagerName').value.trim() || null
+    });
+    if (!r.success) return showToast(r.error || 'Submit failed', 'error');
+    currentSession = r.session;
+    showToast('Audit submitted successfully! \u2713', 'success');
+    await loadSession(currentSession.id);
+  } catch(e) {
+    showToast('Network error', 'error');
+  } finally {
+    setLoading('submitAuditBtn', false, '\u2713 Submit Audit');
+  }
+}
+
+// ─── HISTORY ──────────────────────────────────────────
+async function loadHistory() {
+  const from = document.getElementById('histFrom').value;
+  const to = document.getElementById('histTo').value;
+  const store = document.getElementById('histStoreFilter').value;
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (store) params.set('storeCode', store);
+  params.set('limit', '100');
+  document.getElementById('historyList').innerHTML = '<div class="loading-text">&#x23F3; Loading...</div>';
+  try {
+    const r = await apiFetch('/api/audits?action=list&' + params.toString(), 'GET');
+    if (!r.success) return showToast(r.error || 'Failed', 'error');
+    const list = r.sessions || [];
+    if (!list.length) {
+      document.getElementById('historyList').innerHTML = '<div class="loading-text">No audits found.</div>';
+      return;
+    }
+    document.getElementById('historyList').innerHTML = list.map(buildHistCard).join('');
+  } catch(e) {
+    document.getElementById('historyList').innerHTML = '<div class="loading-text" style="color:#c62828">Error loading.</div>';
+  }
+}
+
+function buildHistCard(s) {
+  const pct = s.compliance_pct || 0;
+  const pctCls = pct >= 80 ? '' : pct >= 50 ? 'mid' : 'low';
+  const statusCls = s.status === 'submitted' ? 'status-submitted' : 'status-in-progress';
+  const statusLbl = s.status === 'submitted' ? 'Submitted' : 'In Progress';
+  const progressCls = s.status === 'submitted' ? '' : 'in-progress';
+  return `<div class="hist-card ${progressCls}" onclick="openHistorySession('${esc(s.id)}')">
+    <div class="hist-head">
+      <div>
+        <div class="hist-title">${esc(s.store_name || s.store_code)}</div>
+        <div class="hist-meta">${fmtDate(s.audit_date)} &bull; by ${esc(s.conducted_by_name || '-')}${s.manager_name ? ' &bull; Mgr: ' + esc(s.manager_name) : ''}</div>
+      </div>
+      <div>
+        <div class="hist-pct ${pctCls}">${pct}%</div>
+        <span class="status-badge ${statusCls}">${statusLbl}</span>
+      </div>
+    </div>
+    <div class="hist-stats">
+      <span>&#x2705; Done: <strong>${s.done_count||0}</strong></span>
+      <span>&#x274C; Not Done: <strong>${s.not_done_count||0}</strong></span>
+      <span>&#x23F3; Pending: <strong>${s.pending_count||0}</strong></span>
+      <span>Total: <strong>${s.total_items||0}</strong></span>
+    </div>
+  </div>`;
+}
+
+function openHistorySession(id) {
+  // Switch to audit tab and load this session read-only
+  showView('audit');
+  loadSession(id);
+}
+
+// ─── REPORTS (manager + admin) ────────────────────────
+async function loadReports() {
+  if (currentUser.role !== 'manager' && currentUser.role !== 'admin') return;
+  const from = document.getElementById('rptFrom').value;
+  const to = document.getElementById('rptTo').value;
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  document.getElementById('reportByArea').innerHTML = '<div class="loading-text">Loading...</div>';
+  document.getElementById('reportByStore').innerHTML = '<div class="loading-text">Loading...</div>';
+  document.getElementById('reportKpis').innerHTML = '';
+  try {
+    const r = await apiFetch('/api/reports?action=summary&' + params.toString(), 'GET');
+    if (!r.success) return showToast(r.error || 'Failed', 'error');
+    renderReportKpis(r.totals || {});
+    renderByArea(r.byArea || []);
+    renderByStore(r.byStore || []);
+  } catch(e) {
+    showToast('Network error', 'error');
+  }
+}
+
+function renderReportKpis(t) {
+  document.getElementById('reportKpis').innerHTML = `
+    <div class="kpi-tile"><div class="num">${t.sessions || 0}</div><div class="lbl">Total Sessions</div></div>
+    <div class="kpi-tile"><div class="num">${t.submitted || 0}</div><div class="lbl">Submitted</div></div>
+    <div class="kpi-tile"><div class="num">${(t.avg_compliance || 0).toFixed(1)}%</div><div class="lbl">Avg Compliance</div></div>
+    <div class="kpi-tile"><div class="num">${t.in_progress || 0}</div><div class="lbl">In Progress</div></div>
+  `;
+}
+
+function renderByArea(rows) {
+  if (!rows.length) {
+    document.getElementById('reportByArea').innerHTML = '<div class="loading-text">No data.</div>';
+    return;
+  }
+  document.getElementById('reportByArea').innerHTML = `<table class="report-table">
+    <thead><tr><th>Area</th><th class="num">Total</th><th class="num">Done</th><th>Compliance</th></tr></thead>
+    <tbody>${rows.map(r => {
+      const pct = r.total ? Math.round((r.done / r.total) * 1000) / 10 : 0;
+      const cls = pct >= 80 ? '' : pct >= 50 ? 'mid' : 'low';
+      return `<tr><td>${esc(r.area_tag || '-')}</td><td class="num">${r.total}</td><td class="num">${r.done}</td>
+        <td><span class="pct-bar"><span class="pct-bar-fill ${cls}" style="width:${pct}%"></span></span>${pct}%</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+function renderByStore(rows) {
+  if (!rows.length) {
+    document.getElementById('reportByStore').innerHTML = '<div class="loading-text">No data.</div>';
+    return;
+  }
+  document.getElementById('reportByStore').innerHTML = `<table class="report-table">
+    <thead><tr><th>Store</th><th class="num">Audits</th><th>Compliance</th><th></th></tr></thead>
+    <tbody>${rows.map(r => {
+      const pct = r.avg_compliance || 0;
+      const cls = pct >= 80 ? '' : pct >= 50 ? 'mid' : 'low';
+      const lastId = r.last_session_id || '';
+      return `<tr><td>${esc(r.store_name || r.store_code)}<div style="font-size:10px;color:#999">${esc(r.store_code)}</div></td>
+        <td class="num">${r.audits}</td>
+        <td><span class="pct-bar"><span class="pct-bar-fill ${cls}" style="width:${pct}%"></span></span>${pct.toFixed(1)}%</td>
+        <td>${lastId ? `<button class="btn btn-sm btn-secondary" onclick="downloadSessionCsv('${esc(lastId)}')">CSV</button>` : ''}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+async function downloadSessionCsv(id) {
+  try {
+    const r = await fetch('/api/reports?action=session-csv&id=' + encodeURIComponent(id), {
+      headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {}
+    });
+    if (!r.ok) return showToast('Download failed', 'error');
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'audit_' + id + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch(e) { showToast('Download failed', 'error'); }
+}
+
+function fmtDate(s) {
+  if (!s) return '';
+  try { return new Date(s).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }); }
+  catch { return s; }
+}
+
+// ─── LOGIN ────────────────────────────────────────────
+async function doLogin() {
+  const empCode = document.getElementById('loginEmpCode').value.trim();
+  const password = document.getElementById('loginPwd').value;
+  const remember = document.getElementById('rememberMe').checked;
+  if (!empCode) return showToast('Enter your Employee ID', 'error');
+  if (!password) return showToast('Enter your password', 'error');
+
+  setLoading('loginBtn', true, 'Signing in...');
+  try {
+    const r = await apiFetch('/api/auth?action=login', 'POST', { empCode, password, remember });
+    if (!r.success) return showToast(r.error || 'Login failed', 'error');
+    authToken = r.token;
+    currentUser = r.employee;
+    if (r.passwordExpired) {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('expiredPwdModal').classList.remove('hidden');
+      ['epCurrent','epNew','epConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+      return;
+    }
+    _loginRemember = remember;
+    if (!r.tcAccepted) {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('tcModal').classList.remove('hidden');
+      return;
+    }
+    if (remember) saveAuthToken(authToken);
+    else clearAuthToken()
+    document.getElementById('loginSection').classList.add('hidden');
+    await initApp();
+  } catch(e) {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    setLoading('loginBtn', false, 'Sign In');
+  }
+}
+
+// ─── T&C ACCEPT/DECLINE ──────────────────────────────
+async function doAcceptTC() {
+  const btn = document.getElementById('tcAcceptBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await apiFetch('/api/auth?action=accept-tc', 'POST', { empCode: currentUser.empCode });
+    if (!r.success) {
+      showToast(r.error || 'Failed to accept. Please try again.', 'error');
+      if (btn) btn.disabled = false;
+      return;
+    }
+    document.getElementById('tcModal').classList.add('hidden');
+    if (_loginRemember) saveAuthToken(authToken); else clearAuthToken();
+    document.getElementById('loginSection').classList.add('hidden');
+    await initApp();
+  } catch(e) {
+    showToast('Network error. Please try again.', 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+function doDeclineTC() {
+  authToken = null;
+  currentUser = null;
+  document.getElementById('tcModal').classList.add('hidden');
+  document.getElementById('loginSection').classList.remove('hidden');
+  showToast('You must accept the Terms & Conditions to use this app.', 'error');
+}
+
+// ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
+async function searchEmployee() {
+  const code = document.getElementById('searchEmpCode').value.trim();
+  if (!code) return showToast('Please enter an Employee ID', 'error');
+  const result = document.getElementById('searchResult');
+  result.innerHTML = '<div style="text-align:center;padding:16px;color:#888">Searching...</div>';
+  try {
+    const r = await apiFetch('/api/admin?action=get-employee&empCode=' + code, 'GET');
+    if (!r.success) { result.innerHTML = '<div style="background:#ffebee;color:#c62828;padding:12px;border-radius:8px;text-align:center">' + (r.error || 'Employee not found') + '</div>'; return; }
+    renderEmployeeResult(r.employee);
+  } catch(e) { result.innerHTML = '<div style="color:#c62828;padding:12px;text-align:center">Network error</div>'; }
+}
+
+function renderEmployeeResult(e) {
+  const result = document.getElementById('searchResult');
+  const isActive = e.store_status === 'Active';
+  const safeName = (e.emp_name || '').replace(/"/g, '&quot;');
+  result.innerHTML =
+    '<div style="background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.1)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">' +
+    '<div>' +
+    '<div style="font-weight:700;font-size:1rem">' + e.emp_name + ' <span style="color:#999;font-size:0.8rem">#' + e.emp_code + '</span></div>' +
+    '<div style="font-size:0.85rem;color:#666">' + (e.emp_designation || '') + (e.store_name ? ' &bull; ' + e.store_name : '') + '</div>' +
+    (e.emp_mobile ? '<div style="font-size:0.8rem;color:#888">&#x1F4F1; ' + e.emp_mobile + '</div>' : '') +
+    '<div style="font-size:0.75rem;color:#aaa;margin-top:2px">Role: ' + (e.role || 'employee') + '</div>' +
+    '</div>' +
+    '<span style="padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:700;background:' + (isActive ? '#e8f5e9' : '#ffebee') + ';color:' + (isActive ? '#2e7d32' : '#c62828') + '">' + e.store_status + '</span>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn btn-secondary btn-sm" data-code="' + e.emp_code + '" data-name="' + safeName + '" onclick="adminResetPwd(this.dataset.code, this.dataset.name)">&#x1F511; Reset Password</button>' +
+    '<button class="btn btn-sm" data-code="' + e.emp_code + '" data-status="' + e.store_status + '" onclick="adminToggleStatus(this.dataset.code, this.dataset.status)" style="background:' + (isActive ? '#fff3e0' : '#e8f5e9') + ';color:' + (isActive ? '#e65100' : '#2e7d32') + ';border:1px solid ' + (isActive ? '#ffcc80' : '#a5d6a7') + '">' + (isActive ? '&#x1F534; Deactivate' : '&#x1F7E2; Activate') + '</button>' +
+    '</div></div>';
+}
+
+async function adminToggleStatus(empCode, currentStatus) {
+  const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+  const msg = newStatus === 'Inactive' ? 'DEACTIVATE this employee? They will lose app access immediately.' : 'ACTIVATE this employee? They will regain app access.';
+  if (!confirm('Are you sure you want to ' + msg)) return;
+  try {
+    const r = await apiFetch('/api/admin?action=toggle-status', 'POST', { empCode, status: newStatus });
+    if (!r.success) return showToast(r.error || 'Failed', 'error');
+    showToast(newStatus === 'Inactive' ? 'Employee deactivated' : 'Employee activated', 'success');
+    searchEmployee();
+  } catch(e) { showToast('Network error', 'error'); }
+}
+
+async function adminResetPwd(empCode, empName) {
+  const newPwd = prompt('Set new temporary password for ' + empName + ' (min 6 chars). Employee must change it on next login:');
+  if (newPwd === null) return;
+  if (!newPwd || newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
+  try {
+    const r = await apiFetch('/api/admin?action=reset-password', 'POST', { empCode, newPassword: newPwd });
+    if (!r.success) return showToast(r.error || 'Failed to reset', 'error');
+    showToast('Password reset for ' + empName, 'success');
+  } catch(e) { showToast('Network error', 'error'); }
+}
+
+function showAddEmpForm() {
+  document.getElementById('addEmpForm').classList.remove('hidden');
+  document.getElementById('addEmpToggleBtn').classList.add('hidden');
+  ['addEmpCode','addEmpName','addEmpDesignation','addEmpMobile','addEmpStoreName','addEmpStoreCode','addEmpPwd'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('addEmpRole').value = 'employee';
+}
+function hideAddEmpForm() {
+  document.getElementById('addEmpForm').classList.add('hidden');
+  document.getElementById('addEmpToggleBtn').classList.remove('hidden');
+}
+async function submitAddEmployee() {
+  const empCode = document.getElementById('addEmpCode').value.trim();
+  const empName = document.getElementById('addEmpName').value.trim();
+  const empDesignation = document.getElementById('addEmpDesignation').value.trim();
+  const empMobile = document.getElementById('addEmpMobile').value.trim();
+  const storeCode = document.getElementById('addEmpStoreCode').value.trim();
+  const storeName = document.getElementById('addEmpStoreName').value.trim();
+  const role = document.getElementById('addEmpRole').value;
+  const initialPassword = document.getElementById('addEmpPwd').value;
+  if (!empCode || !empName || !initialPassword) return showToast('Employee ID, Name and Password are required', 'error');
+  if (initialPassword.length < 6) return showToast('Password must be at least 6 characters', 'error');
+  setLoading('addEmpSubmitBtn', true, 'Adding...');
+  try {
+    const r = await apiFetch('/api/admin?action=add-employee', 'POST', { empCode: parseInt(empCode), empName, empDesignation, empMobile, storeCode, storeName, role, initialPassword });
+    if (!r.success) return showToast(r.error || 'Failed to add employee', 'error');
+    showToast(empName + ' added successfully!', 'success');
+    hideAddEmpForm();
+  } catch(e) { showToast('Network error', 'error'); }
+  finally { setLoading('addEmpSubmitBtn', false, 'Add Employee'); }
+}
+
+// ─── EXPIRED PASSWORD CHANGE ──────────────────────────
+async function doExpiredPasswordChange() {
+  const current = document.getElementById('epCurrent').value;
+  const newPwd = document.getElementById('epNew').value;
+  const confirm = document.getElementById('epConfirm').value;
+  if (!current || !newPwd || !confirm) return showToast('All fields are required', 'error');
+  if (newPwd !== confirm) return showToast('Passwords do not match', 'error');
+  if (newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
+  setLoading('epBtn', true, 'Saving...');
+  try {
+    const r = await apiFetch('/api/auth?action=change-password', 'POST', {
+      empCode: currentUser.empCode, currentPassword: current, newPassword: newPwd
+    });
+    if (!r.success) return showToast(r.error || 'Failed to change password', 'error');
+    document.getElementById('expiredPwdModal').classList.add('hidden');
+    showToast('Password updated! Logging you in…', 'success');
+    await initApp();
+  } catch { showToast('Network error', 'error'); }
+  finally { setLoading('epBtn', false, 'Set New Password'); }
+}
+
+function doLogout() {
+  authToken = null; currentUser = null;
+  clearAuthToken()
+  showLogin();
+  showToast('Logged out successfully');
+}
+
+// ─── CHANGE PASSWORD (first login) ────────────────────
+async function doChangePassword() {
+  const current = document.getElementById('cpCurrent').value;
+  const newPwd = document.getElementById('cpNew').value;
+  const confirm = document.getElementById('cpConfirm').value;
+  if (!current || !newPwd || !confirm) return showToast('All fields are required', 'error');
+  if (newPwd !== confirm) return showToast('Passwords do not match', 'error');
+  if (newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
+
+  setLoading('cpBtn', true, 'Saving...');
+  try {
+    const r = await apiFetch('/api/auth?action=change-password', 'POST', {
+      empCode: currentUser.empCode, currentPassword: current, newPassword: newPwd
+    });
+    if (!r.success) return showToast(r.error || 'Failed to change password', 'error');
+    document.getElementById('changePwdModal').classList.add('hidden');
+    currentUser.isFirstLogin = false;
+    showToast('Password changed successfully! \u2713', 'success');
+    // Now kick off the audit session
+    if (document.getElementById('auditStoreCode').value) {
+      await startOrResumeSession();
+    }
+  } catch {
+    showToast('Network error', 'error');
+  } finally {
+    setLoading('cpBtn', false, 'Set Password');
+  }
+}
+
+// ─── FORGOT PASSWORD FLOW ──────────────────────────────
+async function sendOTP() {
+  const empCode = document.getElementById('fpEmpCode').value.trim();
+  const mobile = document.getElementById('fpMobile').value.trim();
+  if (!empCode) return showToast('Enter your Employee ID', 'error');
+  if (!/^\d{10}$/.test(mobile)) return showToast('Enter a valid 10-digit mobile number', 'error');
+  fpEmpCodeVal = empCode;
+
+  setLoading('sendOtpBtn', true, 'Sending OTP...');
+  try {
+    const r = await apiFetch('/api/otp?action=send', 'POST', { empCode, mobile });
+    if (!r.success) return showToast(r.error || 'Failed to send OTP', 'error');
+    showForgotStep(2);
+    if (r.demo) {
+      document.getElementById('otpSentMsg').innerHTML = `&#x26A0; <strong>Demo Mode:</strong> SMS not configured. Your OTP is: <strong style="color:#2e7d32;font-size:20px">${r.otp}</strong>`;
+    } else {
+      document.getElementById('otpSentMsg').textContent = `OTP sent to ****${mobile.slice(-4)}. Valid for 5 minutes.`;
+    }
+    document.getElementById('o1').focus();
+  } catch {
+    showToast('Network error', 'error');
+  } finally {
+    setLoading('sendOtpBtn', false, 'Send OTP');
+  }
+}
+
+function otpMove(el, nextId) {
+  el.value = el.value.replace(/\D/g, '');
+  if (el.value && nextId) document.getElementById(nextId).focus();
+}
+function otpBack(e, el, prevId) {
+  if (e.key === 'Backspace' && !el.value && prevId) document.getElementById(prevId).focus();
+}
+
+async function verifyOTP() {
+  const otp = ['o1','o2','o3','o4','o5','o6'].map(id => document.getElementById(id).value).join('');
+  if (otp.length !== 6) return showToast('Enter the complete 6-digit OTP', 'error');
+
+  setLoading('verifyOtpBtn', true, 'Verifying...');
+  try {
+    const r = await apiFetch('/api/otp?action=verify', 'POST', { empCode: fpEmpCodeVal, otp });
+    if (!r.success) return showToast(r.error || 'Invalid OTP', 'error');
+    fpResetToken = r.resetToken;
+    showForgotStep(3);
+  } catch {
+    showToast('Network error', 'error');
+  } finally {
+    setLoading('verifyOtpBtn', false, 'Verify OTP');
+  }
+}
+
+async function resetPassword() {
+  const newPwd = document.getElementById('fpNewPwd').value;
+  const confirm = document.getElementById('fpConfirmPwd').value;
+  if (!newPwd || !confirm) return showToast('All fields are required', 'error');
+  if (newPwd !== confirm) return showToast('Passwords do not match', 'error');
+  if (newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
+
+  setLoading('resetPwdBtn', true, 'Saving...');
+  try {
+    const r = await apiFetch('/api/auth?action=reset-password', 'POST', {
+      empCode: fpEmpCodeVal, newPassword: newPwd, resetToken: fpResetToken
+    });
+    if (!r.success) return showToast(r.error || 'Reset failed', 'error');
+    showToast('Password reset successfully! Please login.', 'success');
+    setTimeout(() => { showLogin(); }, 1500);
+  } catch {
+    showToast('Network error', 'error');
+  } finally {
+    setLoading('resetPwdBtn', false, 'Set New Password');
+  }
+}
+
+// ─── API FETCH ────────────────────────────────────────
+async function apiFetch(url, method, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (authToken) opts.headers['Authorization'] = 'Bearer ' + authToken;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ─── UTILS ────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+function setLoading(btnId, loading, text) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<span class="spinner"></span>${text}` : text;
+}
+
+function togglePw(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '\uD83D\uDE48'; }
+  else { inp.type = 'password'; btn.textContent = '\uD83D\uDC41'; }
+}
+
+function esc(s) {
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+
+     <style>
+/* ── MEENA BAZAAR BRAND THEME v4 ── */
+/* Header/Hero: #FDD32C (Yellow) | Buttons: #CCD96F (Lime Green) */
+/* Red #C61E32 only for Forgot Password link | BG: #EAE7DB */
+body { background: #EAE7DB !important; }
+.app-header { background: #FDD32C !important; color: #333333 !important; }
+.app-header .title,
+.app-header .subtitle { color: #333333 !important; }
+.login-hero { background: #FDD32C !important; color: #333333 !important; }
+.login-hero h1,
+.login-hero p { color: #333333 !important; }
+.btn-primary {
+  background: #CCD96F !important;
+  color: #333333 !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: 0 3px 0 #a8b84a !important;
+}
+.btn-primary:hover { background: #b8c55a !important; }
+.btn-primary:active { transform: translateY(2px); box-shadow: none !important; }
+.login-card h2,
+.forgot-card h2,
+.modal h3,
+.card-title { color: #333333 !important; }
+.link-btn { color: #C61E32 !important; }
+.link-btn:hover { color: #9e1828 !important; text-decoration: underline !important; }
+.field input:focus,
+.field select:focus,
+.field textarea:focus { border-color: #b8c55a !important; box-shadow: 0 0 0 2px rgba(204,217,111,.3) !important; }
+.area-header { background: #FDD32C !important; border-left-color: #C61E32 !important; }
+.area-header .name { color: #333333 !important; }
+.status-submitted { background: #f5fae0 !important; color: #4a6000 !important; border-color: #CCD96F !important; }
+.login-card { border-top: 3px solid #b8c55a !important; }
+.hist-card { border-left-color: #CCD96F !important; }
+.hist-card.in-progress { border-left-color: #e0a800 !important; }
+.mb-logo-banner { background: #EAE7DB; padding: 22px 20px 14px; text-align: center; }
+.mb-logo-img { height: 90px; width: auto; max-width: 100%; display: block; margin: 0 auto; }
+.mb-logo-text { font-family: 'Sacramento', cursive; font-size: 54px; color: #2c2c2c; line-height: 1.2; }
+     </style>
+</body>
+</html>
