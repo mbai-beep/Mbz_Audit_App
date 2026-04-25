@@ -1,46 +1,40 @@
 /* Google Sheets append helper — writes one row per submitted audit.
-   Gracefully no-ops (logs warning, returns false) if GOOGLE_SHEET_ID or
-   GOOGLE_SERVICE_ACCOUNT env vars aren't configured, so a sheets outage
-   never breaks the audit submit flow. */
+   Uses google-auth-library + raw fetch to keep Vercel function bundles
+   small. Gracefully no-ops (returns false) if env vars aren't set, so
+   a Sheets outage never breaks the audit submit flow. */
 
-const { google } = require('googleapis');
+const { googleFetch } = require('./_google');
+const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 
-function loadServiceAccount() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT;
-  if (!raw) return null;
-  try { return JSON.parse(raw); }
-  catch (_) {
-    try { return JSON.parse(raw.replace(/\n/g, '\\n').replace(/\r/g, '')); }
-    catch (e) { console.error('[sheets] bad GOOGLE_SERVICE_ACCOUNT:', e.message); return null; }
-  }
-}
+const HEADER_ROW = [
+  'Submitted At (IST)', 'Session ID', 'Store Code', 'Store Name',
+  'Audit Date', 'Conducted By (Code)', 'Conducted By (Name)', 'Role',
+  'Manager Name', 'Total Items', 'Done', 'Not Done', 'Pending',
+  'Compliance %', 'Status'
+];
 
-function getAuth() {
-  const sa = loadServiceAccount();
-  if (!sa) return null;
-  return new google.auth.GoogleAuth({
-    credentials: sa,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets']
-  });
+function api(sheetId, path, query = {}) {
+  const qs = new URLSearchParams(query).toString();
+  return `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}${path}${qs ? '?' + qs : ''}`;
 }
 
 async function appendRow(row) {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const tab = process.env.GOOGLE_SHEET_TAB || 'Audits';
-  const auth = getAuth();
-  if (!sheetId || !auth) {
+  if (!sheetId || !process.env.GOOGLE_SERVICE_ACCOUNT) {
     console.warn('[sheets] skipped — GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT missing');
     return false;
   }
   try {
-    const sheets = google.sheets({ version: 'v4', auth });
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: sheetId,
-      range: `${tab}!A:Z`,
+    const url = api(sheetId, `/values/${encodeURIComponent(tab + '!A:Z')}:append`, {
       valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: { values: [row] }
+      insertDataOption: 'INSERT_ROWS'
     });
+    await googleFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [row] })
+    }, SCOPE);
     return true;
   } catch (err) {
     console.error('[sheets] append failed:', err.message);
@@ -52,28 +46,20 @@ async function appendRow(row) {
 async function ensureHeader() {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const tab = process.env.GOOGLE_SHEET_TAB || 'Audits';
-  const auth = getAuth();
-  if (!sheetId || !auth) return false;
+  if (!sheetId || !process.env.GOOGLE_SERVICE_ACCOUNT) return false;
   try {
-    const sheets = google.sheets({ version: 'v4', auth });
-    const r = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: `${tab}!A1:A1`
+    const getUrl = api(sheetId, `/values/${encodeURIComponent(tab + '!A1:A1')}`);
+    const r = await googleFetch(getUrl, {}, SCOPE);
+    const data = await r.json();
+    if (data.values && data.values.length && data.values[0].length) return true;
+    const putUrl = api(sheetId, `/values/${encodeURIComponent(tab + '!A1')}`, {
+      valueInputOption: 'USER_ENTERED'
     });
-    if (r.data.values && r.data.values.length && r.data.values[0].length) return true;
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: `${tab}!A1`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[
-          'Submitted At (IST)', 'Session ID', 'Store Code', 'Store Name',
-          'Audit Date', 'Conducted By (Code)', 'Conducted By (Name)', 'Role',
-          'Manager Name', 'Total Items', 'Done', 'Not Done', 'Pending',
-          'Compliance %', 'Status'
-        ]]
-      }
-    });
+    await googleFetch(putUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [HEADER_ROW] })
+    }, SCOPE);
     return true;
   } catch (err) {
     console.error('[sheets] ensureHeader failed:', err.message);
@@ -81,7 +67,6 @@ async function ensureHeader() {
   }
 }
 
-/* Build a row from a DB session record + return true if appended. */
 async function appendAuditRow(session) {
   if (!session) return false;
   await ensureHeader();
