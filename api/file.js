@@ -1,5 +1,10 @@
-const { google } = require('googleapis');
+/* Stream a Drive file (private to the SA) through to the client.
+   Uses google-auth-library for OAuth + raw HTTPS to forward Range headers.
+   Lightweight replacement for the previous googleapis-based version. */
+
 const https = require('https');
+const { getAccessToken } = require('./_google');
+const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -16,38 +21,28 @@ module.exports = async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'Missing file id' });
 
   try {
-    let serviceAccount;
-    try {
-      serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
-    } catch (e) {
-      serviceAccount = JSON.parse(
-        process.env.GOOGLE_SERVICE_ACCOUNT.replace(/\n/g, '\\n').replace(/\r/g, '')
-      );
+    const token = await getAccessToken(SCOPE);
+
+    /* Fetch metadata first so we can advertise correct content-length / type */
+    const metaRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=mimeType,name,size&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!metaRes.ok) {
+      const t = await metaRes.text().catch(() => '');
+      return res.status(metaRes.status).json({ error: `Drive metadata ${metaRes.status}: ${t.slice(0, 200)}` });
     }
-
-    const auth = new google.auth.GoogleAuth({
-      credentials: serviceAccount,
-      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-    });
-    const drive = google.drive({ version: 'v3', auth });
-
-    // Fetch metadata and access token in parallel
-    const [accessToken, meta] = await Promise.all([
-      auth.getAccessToken(),
-      drive.files.get({ fileId: id, fields: 'mimeType,name,size', supportsAllDrives: true })
-    ]);
-
-    const mimeType = meta.data.mimeType || 'application/octet-stream';
-    const fileSize = parseInt(meta.data.size || '0', 10);
+    const meta = await metaRes.json();
+    const mimeType = meta.mimeType || 'application/octet-stream';
+    const fileSize = parseInt(meta.size || '0', 10);
     const rangeHeader = req.headers['range'];
 
-    // Always advertise range support so iOS audio player can seek
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Cache-Control', 'public, max-age=86400');
 
     const driveUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media&supportsAllDrives=true`;
-    const reqHeaders = { Authorization: `Bearer ${accessToken}` };
+    const reqHeaders = { Authorization: `Bearer ${token}` };
     let statusCode = 200;
 
     if (rangeHeader && fileSize) {
@@ -64,12 +59,12 @@ module.exports = async function handler(req, res) {
       res.setHeader('Content-Length', String(fileSize));
     }
 
-    // Stream the file via raw HTTPS so we can forward Range headers
+    /* Stream via raw HTTPS so we can forward Range headers and follow redirects */
     await new Promise((resolve, reject) => {
       function stream(url, attempt) {
         https.get(url, { headers: reqHeaders }, (driveRes) => {
           if ((driveRes.statusCode === 301 || driveRes.statusCode === 302) && attempt < 5) {
-            driveRes.resume(); // drain
+            driveRes.resume();
             return stream(driveRes.headers.location, attempt + 1);
           }
           res.writeHead(statusCode);
@@ -83,8 +78,6 @@ module.exports = async function handler(req, res) {
 
   } catch (err) {
     console.error('File proxy error:', err.message);
-    if (!res.headersSent) {
-      res.status(500).json({ error: err.message });
-    }
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 };
