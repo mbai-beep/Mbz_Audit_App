@@ -2,14 +2,6 @@
   "version": 2,
   "functions": {
     "api/*.js": {
-      "maxDuration": 30,
-      "memory": 1024
-    },
-    "api/upload.js": {
-      "maxDuration": 60,
-      "memory": 1024
-    },
-    "api/seed.js": {
       "maxDuration": 60,
       "memory": 1024
     }
