@@ -1,0 +1,16 @@
+# Files NOT needed at runtime — keep function bundles small.
+node_modules/
+.git/
+.github/
+.vercel/
+.env
+.env.*
+.env.example
+.gitignore
+README.md
+DEPLOY.md
+mbz_audit_app.bundle
+*.md
+data/employees.json
+_clean_build/
+build/
