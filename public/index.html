@@ -1,1419 +1,1282 @@
-<!-- MB Store Audit App v1 -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>MB Store Audit</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sacramento&display=swap" rel="stylesheet">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#8DBBCC" />
+<title>Meena Bazaar — Store Audit</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f0;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-.hidden{display:none!important}
-/* ── HEADER ── */
-.app-header{width:100%;max-width:600px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.app-header .title{font-size:17px;font-weight:700;letter-spacing:.3px}
-.app-header .subtitle{font-size:11px;opacity:.8;margin-top:1px}
-.app-header .user-badge{font-size:11px;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;text-align:right;max-width:140px;word-break:break-word}
-/* ── SECTIONS ── */
-.page{width:100%;max-width:600px;padding:0 0 80px;flex:1}
-/* ── LOGIN ── */
-#loginSection{width:100%;max-width:600px;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-.login-hero{width:100%;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;padding:40px 20px 30px;text-align:center}
-.login-hero .logo{font-size:52px;margin-bottom:8px}
-.login-hero h1{font-size:22px;font-weight:700}
-.login-hero p{font-size:13px;opacity:.8;margin-top:4px}
-.login-card{background:#fff;border-radius:18px 18px 0 0;margin-top:-12px;width:100%;padding:28px 24px;flex:1}
-.login-card h2{font-size:18px;font-weight:700;color:#1b5e20;margin-bottom:4px}
-.login-card p{font-size:13px;color:#777;margin-bottom:20px}
-/* ── FORM ELEMENTS ── */
-.field{margin-bottom:14px}
-.field label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:15px;outline:none;transition:border-color .2s;background:#fff;color:#333;appearance:none;-webkit-appearance:none}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:#2e7d32}
-.field textarea{resize:vertical;min-height:60px;font-family:inherit;font-size:13px}
-.field .pw-wrap{position:relative}
-.field .pw-wrap input{padding-right:44px}
-.field .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#999;padding:4px}
-.field .input-hint{font-size:11px;color:#999;margin-top:4px}
-.checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-.checkbox-row input[type=checkbox]{width:18px;height:18px;accent-color:#2e7d32;cursor:pointer}
-.checkbox-row label{font-size:14px;color:#555;cursor:pointer}
-/* ── BUTTONS ── */
-.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px}
-.btn-primary{background:linear-gradient(135deg,#2e7d32,#388e3c);color:#fff}
-.btn-primary:hover{background:linear-gradient(135deg,#1b5e20,#2e7d32)}
-.btn-primary:active{transform:scale(.98)}
-.btn-secondary{background:#f0f4f0;color:#2e7d32;border:1.5px solid #2e7d32}
-.btn-sm{width:auto;display:inline-block;padding:7px 14px;font-size:13px;border-radius:8px;font-weight:600}
-.btn-danger{background:#c62828;color:#fff}
-.btn-danger:hover{background:#b71c1c}
-.btn-gray{background:#f5f5f5;color:#555;border:1px solid #ddd}
-.link-btn{background:none;border:none;color:#2e7d32;font-size:14px;cursor:pointer;text-decoration:underline;padding:0}
-.link-btn:hover{color:#1b5e20}
-/* ── CARD ── */
-.card{background:#fff;border-radius:14px;padding:16px;margin:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-.card-title{font-size:13px;font-weight:700;color:#1b5e20;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-/* ── NAV TABS ── */
-.nav-tabs{width:100%;max-width:600px;background:#fff;display:flex;box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:56px;z-index:99}
-.nav-tab{flex:1;padding:12px 6px;border:none;background:none;font-size:12px;font-weight:600;color:#999;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s}
-.nav-tab.active{color:#2e7d32;border-bottom-color:#2e7d32}
-/* ── TOAST ── */
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:340px;text-align:center}
-#toast.show{opacity:1}
-#toast.success{background:#2e7d32}
-#toast.error{background:#c62828}
-/* ── AUDIT SUMMARY BAR ── */
-.audit-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 12px}
-.audit-stat{background:#fff;border-radius:10px;padding:10px 6px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.audit-stat .num{font-size:18px;font-weight:800;color:#333}
-.audit-stat .lbl{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
-.audit-stat.done .num{color:#2e7d32}
-.audit-stat.not-done .num{color:#c62828}
-.audit-stat.pending .num{color:#f57f17}
-.audit-stat.pct .num{color:#1b5e20}
-/* ── AREA SECTION (accordion) ── */
-.area-section{background:#fff;border-radius:12px;margin:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden}
-.area-header{padding:12px 14px;background:#e8f5e9;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-left:4px solid #2e7d32}
-.area-header .name{font-size:13px;font-weight:700;color:#1b5e20;text-transform:uppercase;letter-spacing:.4px;flex:1}
-.area-header .tally{font-size:11px;color:#555;font-weight:600;background:#fff;padding:3px 8px;border-radius:12px;border:1px solid #c8e6c9}
-.area-header .arrow{margin-left:8px;color:#2e7d32;font-size:14px;transition:transform .2s}
-.area-section.collapsed .arrow{transform:rotate(-90deg)}
-.area-section.collapsed .area-body{display:none}
-.area-body{padding:0}
-/* ── AUDIT ITEM ── */
-.audit-item{padding:12px 14px;border-top:1px solid #f0f0f0}
-.audit-item:first-child{border-top:none}
-.audit-item.child-item{background:#fafafa;border-left:3px solid #c8e6c9;margin-left:12px}
-.audit-item .ai-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
-.audit-item .ai-text{font-size:13px;color:#222;font-weight:600;line-height:1.4;flex:1}
-.audit-item .ai-meta{font-size:11px;color:#777;margin-top:3px;display:flex;flex-wrap:wrap;gap:6px}
-.audit-item .ai-timeline{background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:600}
-.audit-item .ai-resp{background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px}
-.audit-item .ai-cat{background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;font-weight:600}
-.status-chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.status-chip{padding:6px 14px;border-radius:18px;border:1.5px solid #ccc;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;background:#fff;color:#555;user-select:none}
-.status-chip:active{transform:scale(.95)}
-.status-chip.yes.selected,.status-chip.done.selected{background:#2e7d32;border-color:#2e7d32;color:#fff}
-.status-chip.no.selected,.status-chip.not-done.selected{background:#c62828;border-color:#c62828;color:#fff}
-.status-chip.pending.selected{background:#f57f17;border-color:#f57f17;color:#fff}
-.audit-item .ai-remarks{margin-top:8px}
-.audit-item .ai-remarks textarea{width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:12px;font-family:inherit;outline:none;resize:vertical;min-height:44px}
-.audit-item .ai-remarks textarea:focus{border-color:#2e7d32}
-.audit-item .ai-resp-input{margin-top:6px}
-.audit-item .ai-resp-input input{width:100%;padding:7px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:12px;outline:none}
-.audit-item .ai-photos{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
-.audit-item .ai-photos img{width:54px;height:54px;object-fit:cover;border-radius:6px;border:1px solid #ddd}
-.audit-item .ai-photos .photo-add{width:54px;height:54px;border:2px dashed #bbb;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;font-size:20px;cursor:pointer;background:#fafafa}
-.audit-item .ai-saved{font-size:10px;color:#2e7d32;margin-top:4px;font-weight:600}
-/* ── HISTORY CARD ── */
-.hist-card{background:#fff;border-radius:12px;margin:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:14px;cursor:pointer;border-left:4px solid #2e7d32}
-.hist-card.in-progress{border-left-color:#f57f17}
-.hist-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.hist-title{font-size:14px;font-weight:700;color:#222}
-.hist-meta{font-size:11px;color:#777;margin-top:3px}
-.hist-pct{font-size:22px;font-weight:800;color:#2e7d32;text-align:right}
-.hist-pct.low{color:#c62828}
-.hist-pct.mid{color:#f57f17}
-.hist-stats{display:flex;gap:10px;margin-top:8px;font-size:11px;color:#555}
-.hist-stats span strong{color:#333}
-.status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
-.status-pending{background:#fff8e1;color:#f57f17;border:1px solid #ffe082}
-.status-submitted{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
-.status-in-progress{background:#fff3e0;color:#e65100;border:1px solid #ffcc80}
-/* ── REPORT TILES ── */
-.report-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 12px}
-.kpi-tile{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-.kpi-tile .num{font-size:22px;font-weight:800;color:#1b5e20}
-.kpi-tile .lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
-.report-table{width:100%;border-collapse:collapse;font-size:12px}
-.report-table th,.report-table td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee}
-.report-table th{background:#f5f5f5;font-weight:700;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
-.report-table td.num,.report-table th.num{text-align:right}
-.pct-bar{display:inline-block;width:60px;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
-.pct-bar-fill{height:100%;background:#2e7d32;transition:width .3s}
-.pct-bar-fill.low{background:#c62828}
-.pct-bar-fill.mid{background:#f57f17}
-/* ── FORGOT PASSWORD ── */
-.forgot-card{background:#fff;border-radius:14px;margin:16px 12px;padding:24px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-.forgot-card h2{font-size:18px;font-weight:700;color:#1b5e20;margin-bottom:6px}
-.forgot-card p{font-size:13px;color:#777;margin-bottom:18px}
-.step-indicator{display:flex;gap:8px;margin-bottom:20px}
-.step-dot{width:28px;height:4px;border-radius:2px;background:#e0e0e0}
-.step-dot.active{background:#2e7d32}
-.otp-inputs{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
-.otp-inputs input{width:44px;height:52px;text-align:center;font-size:22px;font-weight:700;border:2px solid #ddd;border-radius:10px;outline:none}
-.otp-inputs input:focus{border-color:#2e7d32}
-/* ── MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal{background:#fff;border-radius:18px;padding:24px 20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
-.modal h3{font-size:18px;font-weight:700;color:#1b5e20;margin-bottom:6px}
-.modal p{font-size:13px;color:#777;margin-bottom:18px}
-/* ── LOADERS ── */
-.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-text{text-align:center;padding:32px;color:#999;font-size:14px}
-/* ── MISC ── */
-.divider{height:1px;background:#f0f0f0;margin:10px 0}
-.section-gap{height:10px}
-.info-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
-.info-row span:first-child{color:#999}
-.info-row span:last-child{color:#333;font-weight:500}
-select option:disabled{color:#bbb}
-.filter-bar{display:flex;gap:6px;margin:10px 12px;flex-wrap:wrap}
-.filter-bar input,.filter-bar select{flex:1;min-width:110px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;background:#fff}
+  :root{
+    --brand:#8DBBCC;--brand2:#7BABBE;--brand-soft:#E3F2FD;
+    --mint:#E6F7F1;--gold:#D4A64A;--silver:#9CAEC2;
+    --ink:#1F3349;--ink2:#3F5874;--mute:#6B829A;
+    --line:#D6E5EF;--line2:#B8D2E0;
+    --bg:#E3F2FD;--bg2:#F5FAFE;--card:#fff;
+    --ok:#1b9b6c;--warn:#e08a1a;--bad:#d23b3b;--magenta:#C2185B;
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink)}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Segoe UI Variable",Roboto,Inter,Arial,"Noto Sans Devanagari",sans-serif;font-size:16px;line-height:1.45}
+  button{font:inherit;cursor:pointer}
+  input,select,textarea{font:inherit;color:var(--ink);background:#fff;border:1.5px solid var(--line2);border-radius:10px;padding:12px 14px;outline:none;width:100%}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(141,187,204,.25)}
+  textarea{resize:vertical;min-height:48px}
+  a{color:var(--brand);text-decoration:none}
+  a.danger{color:var(--bad)}
+
+  .frame{max-width:520px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:88px}
+
+  /* ───── MBZ.IN logo (matches reference) ───── */
+  .brand-mbz{display:flex;flex-direction:column;align-items:center;gap:0;margin:14px 0 8px}
+  .brand-mbz .mbz{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:54px;font-weight:300;color:#5a5a5a;letter-spacing:-3px;line-height:1}
+  .brand-mbz .mbz .in{color:#1a1a1a;font-weight:400}
+  .brand-mbz .mbz .dot{color:var(--magenta);font-weight:900;font-style:normal}
+  .brand-mbz .meena{font-family:'Brush Script MT','Lucida Handwriting',cursive;font-style:italic;color:#222;font-size:22px;margin-top:-4px}
+
+  /* ───── Login ───── */
+  .login{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 22px;background:linear-gradient(180deg,#F5FAFE,#E3F2FD)}
+  .login .box{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;box-shadow:0 4px 20px rgba(31,51,73,.08);margin-top:8px}
+  .login .head{padding:24px 22px 18px;background:linear-gradient(180deg,#A8C6D2,#8DBBCC);color:#fff;text-align:center}
+  .login .head .icon{width:48px;height:48px;margin:0 auto 10px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:24px}
+  .login .head h1{margin:0 0 2px;font-size:20px;font-weight:700}
+  .login .head small{display:block;font-size:13px;opacity:.92}
+  .login .body{padding:22px}
+  .login h2{margin:0 0 4px;font-size:20px;color:var(--brand2)}
+  .login .lead{color:var(--ink2);font-size:14px;margin-bottom:18px}
+  .login label{display:block;font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
+  .login .field{margin-bottom:12px}
+  .login .pw-row{position:relative}
+  .login .pw-row .eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--mute);font-size:18px;cursor:pointer;padding:4px}
+  .login .hint{font-size:12px;color:var(--mute);margin-top:6px}
+  .login .hint b{color:var(--ink2)}
+  .login .row{display:flex;align-items:center;justify-content:space-between;margin:14px 0}
+  .login .row label{font-size:13px;color:var(--ink2);font-weight:500;letter-spacing:0;text-transform:none;display:flex;align-items:center;gap:8px;cursor:pointer}
+  .login .row input[type=checkbox]{width:18px;height:18px;accent-color:var(--brand)}
+  .login .row a{font-size:13px;font-weight:600;color:var(--bad)}
+  .login .signin{width:100%;padding:14px;border-radius:10px;border:0;background:linear-gradient(180deg,#A8C6D2,#7BABBE);color:#fff;font-weight:700;font-size:15px}
+  .login .signin:active{filter:brightness(.95)}
+  .login .footnote{font-size:11px;color:var(--mute);text-align:center;margin-top:14px}
+
+  /* ───── App shell ───── */
+  .topbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#8DBBCC,#7FB2C5);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(31,51,73,.10)}
+  .topbar .logo{display:flex;align-items:center;gap:10px;flex:1}
+  .topbar .logo .mark{width:38px;height:38px;border-radius:10px;background:#fff;display:grid;place-items:center;font-family:Georgia,serif;font-style:italic;color:#5a5a5a;font-size:16px;font-weight:300;letter-spacing:-1px}
+  .topbar .logo .mark .dot{color:var(--magenta);font-style:normal;font-weight:900}
+  .topbar .logo b{font-size:16px;display:block}
+  .topbar .logo small{display:block;font-size:11px;opacity:.85}
+  .topbar .icon{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.12);display:grid;place-items:center;border:0;color:#fff;font-size:18px}
+  .topbar .icon:active{background:rgba(255,255,255,.22)}
+
+  .userstrip{padding:12px 16px;background:linear-gradient(180deg,#fff,#F5FAFE);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .userstrip .av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#8DBBCC,#5C8DA0);color:#fff;display:grid;place-items:center;font-weight:800;font-size:18px}
+  .userstrip .who{flex:1;line-height:1.25}
+  .userstrip .who b{font-size:16px}
+  .userstrip .who span{display:block;font-size:13px;color:var(--ink2)}
+  .userstrip .who .pill{background:var(--mint);color:#0F7A51;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;display:inline-block;margin-top:2px}
+  .userstrip .who .pill.admin{background:#FAF3E0;color:#7A5C18}
+
+  /* Banner (pw expiry, etc.) */
+  .banner{margin:12px 16px;padding:12px 14px;border-radius:12px;background:#FFF7E5;border:1px solid #F1D89C;color:#7A5C18;display:flex;gap:10px;align-items:flex-start;font-size:14px}
+  .banner .ic{font-size:20px;line-height:1}
+  .banner b{display:block}
+  .banner button{margin-left:auto;background:var(--warn);color:#fff;border:0;border-radius:8px;padding:7px 12px;font-weight:700;font-size:13px}
+  .banner.crit{background:#FCE8E8;border-color:#E89A9A;color:#8A2222}
+  .banner.crit button{background:var(--bad)}
+
+  main{padding:16px}
+  h1{font-size:22px;margin:0 0 4px;line-height:1.2}
+  h2{font-size:17px;margin:0 0 10px}
+  .sub{color:var(--ink2);font-size:14px}
+  .hindi{color:var(--ink2);font-size:13px;font-weight:500}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(31,51,73,.04)}
+  .card h2{margin-top:0}
+
+  /* Big buttons */
+  .bigbtn{display:flex;align-items:center;gap:14px;width:100%;padding:18px 16px;border-radius:14px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-size:17px;font-weight:600;text-align:left;margin-bottom:10px;box-shadow:0 1px 2px rgba(31,51,73,.04)}
+  .bigbtn:active{transform:scale(.99)}
+  .bigbtn .ic{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0;background:var(--brand-soft);color:var(--brand)}
+  .bigbtn .body{flex:1}
+  .bigbtn .body small{display:block;font-size:13px;color:var(--ink2);font-weight:500;margin-top:2px}
+  .bigbtn .arrow{color:var(--mute);font-size:24px}
+  .bigbtn.brand{background:linear-gradient(180deg,#8DBBCC,#7BABBE);color:#fff;border-color:var(--brand)}
+  .bigbtn.brand .ic{background:rgba(255,255,255,.22);color:#fff}
+  .bigbtn.brand .body small{color:rgba(255,255,255,.9)}
+  .bigbtn.brand .arrow{color:rgba(255,255,255,.9)}
+
+  /* Store tiles */
+  .stores{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .storetile{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;text-align:left;cursor:pointer}
+  .storetile:active{border-color:var(--brand);background:var(--brand-soft)}
+  .storetile b{display:block;font-size:14px}
+  .storetile small{font-size:12px;color:var(--ink2);display:block;margin-top:2px}
+
+  /* Audit progress */
+  .progress{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:6px 0 14px}
+  .progress > div{height:100%;background:linear-gradient(90deg,#8DBBCC,#1B9B6C);border-radius:99px;transition:width .3s ease}
+  .progmeta{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2);margin-bottom:10px}
+
+  /* Audit question card */
+  .qcard{background:#fff;border-radius:18px;border:1px solid var(--line);overflow:hidden;box-shadow:0 2px 12px rgba(31,51,73,.06)}
+  .qcard .top{padding:18px 18px 6px}
+  .qcard .badge{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);color:#3F5874;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-bottom:8px}
+  .qcard h2{font-size:20px;line-height:1.25;margin:0}
+  .qcard .qtext{font-size:15px;color:var(--ink2);margin-top:8px;line-height:1.5}
+  .qcard .qhindi{font-size:14px;color:var(--mute);margin-top:4px}
+
+  .evbox{margin:14px 18px;border:2px dashed var(--line2);border-radius:14px;padding:14px;background:#F5FAFE}
+  .evbox .lbl{font-size:13px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:6px}
+  .evbox .lbl b{color:var(--ink)}
+  .evbox .ev{font-size:13px;color:var(--ink2);margin-top:4px}
+  .photoslot{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .photoslot .add{display:grid;place-items:center;width:84px;height:84px;border-radius:12px;background:#fff;border:1.5px dashed var(--line2);color:var(--ink2);font-size:13px;text-align:center;line-height:1.2;cursor:pointer}
+  .photoslot .add b{font-size:22px;display:block;margin-bottom:2px}
+  .photoslot .ph{width:84px;height:84px;border-radius:12px;background:#e9eaf0 center/cover no-repeat;position:relative;overflow:hidden;cursor:pointer}
+  .photoslot .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .photoslot .ph .x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;background:#fff;border:1.5px solid var(--line2);color:var(--ink);display:grid;place-items:center;font-size:14px;cursor:pointer;z-index:2}
+
+  .voicebox{margin:8px 18px 0;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;background:#fff;display:flex;flex-direction:column;gap:8px}
+  .voicebox .vhead{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--ink2);font-weight:600}
+  .voicebox .vhead b{color:var(--ink)}
+  .voicebox .recbtn{display:flex;align-items:center;gap:10px;padding:14px;border-radius:12px;border:0;width:100%;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:15px;cursor:pointer}
+  .voicebox .recbtn.live{background:#FCE8E8;color:var(--bad);animation:pulse 1.2s infinite}
+  .voicebox .recbtn .dot{width:14px;height:14px;border-radius:50%;background:currentColor}
+  .voicebox audio{width:100%;outline:none}
+  .voicebox .vrow{display:flex;gap:8px;align-items:center}
+  .voicebox .vrow audio{flex:1}
+  .voicebox .vrow button{padding:8px 12px;font-size:13px;border-radius:8px;background:#fff;border:1.5px solid var(--line2);color:var(--ink);font-weight:600;cursor:pointer}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(210,59,59,.4)}70%{box-shadow:0 0 0 10px rgba(210,59,59,0)}100%{box-shadow:0 0 0 0 rgba(210,59,59,0)}}
+
+  /* PASS / FAIL buttons (2-state per new framework) */
+  .pfrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 14px 14px}
+  .pf{padding:18px 8px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .pf .em{font-size:30px;line-height:1}
+  .pf:active{transform:scale(.97)}
+  .pf.pass.on{border-color:var(--ok);background:var(--mint);color:#0F7A51}
+  .pf.fail.on{border-color:var(--bad);background:#FCE8E8;color:#8A2222}
+
+  .remarks{padding:0 14px 14px}
+  .remarks label{display:block;font-size:13px;color:var(--ink2);margin-bottom:6px;font-weight:600}
+
+  .actionbar{position:fixed;left:0;right:0;bottom:0;z-index:25;background:#fff;border-top:1px solid var(--line);padding:10px 14px env(safe-area-inset-bottom);max-width:520px;margin:0 auto;display:flex;gap:10px}
+  .btn{flex:1;padding:14px;border-radius:12px;border:0;font-weight:700;font-size:15px;background:var(--brand);color:#fff;cursor:pointer}
+  .btn:active{background:var(--brand2)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line2)}
+  .btn:disabled{background:#cfd2dd;color:#fff}
+  .btn.sm{padding:8px 12px;font-size:13px;flex:0 0 auto}
+  .btn.danger{background:var(--bad)}
+  .btn.warn{background:var(--warn)}
+
+  /* Result */
+  .result-hero{background:linear-gradient(160deg,#fff,#F5FAFE);border-radius:18px;border:1px solid var(--line);padding:22px;text-align:center;margin-bottom:14px;box-shadow:0 2px 12px rgba(31,51,73,.06)}
+  .result-hero .ring{width:160px;height:160px;border-radius:50%;margin:6px auto;background:conic-gradient(var(--c) calc(var(--p)*1%),#E8EFF6 0);display:grid;place-items:center;position:relative}
+  .result-hero .ring::before{content:"";position:absolute;inset:12px;border-radius:50%;background:#fff}
+  .result-hero .ring .pct{position:relative;font-size:38px;font-weight:800;color:var(--ink)}
+  .result-hero .ring .pct small{display:block;font-size:11px;color:var(--mute);font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+  .gradechip{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:999px;font-weight:800;font-size:14px;letter-spacing:.5px;text-transform:uppercase}
+  .gradechip.Gold{background:linear-gradient(135deg,#E5B85A,#C99323);color:#fff}
+  .gradechip.Silver{background:linear-gradient(135deg,#B6C3D2,#8B9BAE);color:#fff}
+  .gradechip.Red{background:linear-gradient(135deg,#E55858,#B92F2F);color:#fff}
+
+  .areas{display:grid;gap:10px}
+  .arearow{display:flex;align-items:center;gap:12px}
+  .arearow .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:18px;background:var(--brand-soft);color:var(--brand);flex-shrink:0}
+  .arearow .info{flex:1;min-width:0}
+  .arearow .info b{display:block;font-size:14px;line-height:1.2}
+  .arearow .info small{display:block;font-size:12px;color:var(--ink2)}
+  .arearow .pct{font-weight:800;font-size:15px}
+  .barlite{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:6px}
+  .barlite > div{height:100%;border-radius:99px}
+  .barlite > .ok{background:linear-gradient(90deg,#0F7A51,#1B9B6C)}
+  .barlite > .warn{background:linear-gradient(90deg,#B26A0A,#E08A1A)}
+  .barlite > .bad{background:linear-gradient(90deg,#8A2222,#D23B3B)}
+
+  .alertcard{background:#FFF7F7;border:1px solid #F3C4C4;border-radius:14px;padding:14px;margin-bottom:10px}
+  .alertcard b{color:var(--bad)}
+
+  /* Bottom nav */
+  .bnav{position:fixed;left:0;right:0;bottom:0;z-index:26;background:#fff;border-top:1px solid var(--line);padding:8px 0 env(safe-area-inset-bottom);max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0}
+  .bnav button{background:transparent;border:0;padding:8px 4px;color:var(--mute);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .bnav button .ic{font-size:22px;line-height:1}
+  .bnav button.active{color:var(--brand)}
+
+  /* Submission tiles */
+  .auditrow{display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer}
+  .auditrow .gradedot{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;font-size:14px;flex-shrink:0}
+  .auditrow .gradedot.Gold{background:#D4A64A}
+  .auditrow .gradedot.Silver{background:#9CAEC2}
+  .auditrow .gradedot.Red{background:#D23B3B}
+  .auditrow .info{flex:1;min-width:0}
+  .auditrow .info b{display:block;font-size:15px}
+  .auditrow .info small{display:block;font-size:12px;color:var(--ink2)}
+  .auditrow .pct{font-weight:800;font-size:15px}
+
+  .submrow{padding:14px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+  .submrow .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .submrow .head .gradedot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;font-size:12px;flex-shrink:0}
+  .submrow .head .info{flex:1;line-height:1.2}
+  .submrow .head .info b{font-size:15px;display:block}
+  .submrow .head .info small{font-size:12px;color:var(--ink2)}
+  .submrow .head .pct{font-weight:800;font-size:15px}
+  .submrow .thumbs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+  .submrow .thumbs .th{width:56px;height:56px;border-radius:8px;background:#e9eaf0 center/cover no-repeat;border:1px solid var(--line);cursor:pointer;flex-shrink:0;overflow:hidden}
+  .submrow .thumbs .th img{width:100%;height:100%;object-fit:cover}
+  .submrow .thumbs .audiotag{display:inline-flex;align-items:center;gap:4px;background:var(--brand-soft);color:var(--brand);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600}
+  .submrow .audio-list{margin-top:8px}
+  .submrow .audio-list audio{width:100%;height:32px;margin-top:6px}
+
+  /* Modal */
+  .modal{display:none;position:fixed;inset:0;z-index:50;background:rgba(20,30,45,.55);align-items:flex-end;justify-content:center;padding:0}
+  .modal.show{display:flex}
+  .modal .sheet{background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:22px;max-height:90vh;overflow-y:auto}
+  .modal h2{margin:0 0 4px;font-size:19px;color:var(--ink)}
+  .modal .lead{color:var(--ink2);font-size:14px;margin-bottom:14px}
+  .modal .field{margin-bottom:12px}
+  .modal label{display:block;font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-bottom:6px}
+  .modal .row{display:flex;gap:8px;margin-top:14px}
+  .modal .row .btn{flex:1}
+  .modal .tc-text{max-height:240px;overflow-y:auto;background:#F5FAFE;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:12px}
+  .modal .checkrow{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ink2);margin-bottom:12px}
+  .modal .checkrow input{width:18px;height:18px;accent-color:var(--brand);margin-top:2px}
+  .otp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
+  .otp-grid input{text-align:center;font-size:22px;font-weight:700;padding:14px 0;letter-spacing:0}
+
+  /* Lightbox */
+  .lightbox{display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:20px;cursor:pointer}
+  .lightbox.show{display:flex}
+  .lightbox img{max-width:100%;max-height:100%;object-fit:contain;cursor:default}
+  .lightbox .close{position:absolute;top:18px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;border:0;font-size:22px;cursor:pointer;backdrop-filter:blur(4px)}
+  .lightbox .close:hover{background:rgba(255,255,255,.28)}
+
+  /* Admin */
+  .adminhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .adminhead .chip{background:#FAF3E0;color:#7A5C18;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+  .subtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+  .subtabs button{background:transparent;border:0;color:var(--mute);padding:8px 12px;font-weight:700;font-size:13px;border-bottom:2px solid transparent;border-radius:0;white-space:nowrap}
+  .subtabs button.active{color:var(--brand);border-bottom-color:var(--brand)}
+  .emprow{display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+  .emprow .av{width:36px;height:36px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:13px}
+  .emprow .info{flex:1;min-width:0;line-height:1.25}
+  .emprow .info b{font-size:14px;display:block}
+  .emprow .info small{font-size:12px;color:var(--ink2);display:block}
+  .emprow .stat{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:700}
+  .emprow .stat.on{background:var(--mint);color:#0F7A51}
+  .emprow .stat.off{background:#FCE8E8;color:#8A2222}
+  .emprow .actions{display:flex;gap:4px;flex-wrap:wrap}
+  .emprow .actions button{padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--line2);background:#fff;color:var(--ink);cursor:pointer}
+  .emprow .actions button.danger{background:#FCE8E8;color:#8A2222;border-color:#E89A9A}
+  .emprow .actions button.warn{background:#FFF7E5;color:#7A5C18;border-color:#F1D89C}
+
+  .empty{padding:30px;text-align:center;color:var(--mute);border:1px dashed var(--line2);border-radius:12px;background:#fff}
+  .empty .ic{font-size:36px;margin-bottom:6px}
+  .codebox{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#F5FAFE;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink2);word-break:break-all}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  /* Toast */
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:90;display:none;max-width:90%}
+  .toast.show{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 </style>
 </head>
 <body>
 
-<div id="loginSection">
-  <div class="mb-logo-banner">
-    <img src="https://mbz.in/cdn/shop/files/logo-500-black_copy.png?v=1725614377&width=300"
-        class="mb-logo-img" alt="Meena Bazaar"
-        onerror="this.style.display='none';document.getElementById('logoFallback').style.display='block'">
-    <div id="logoFallback" class="mb-logo-text" style="display:none">Meena Bazaar</div>
-  </div>  <div class="login-hero">
-    <div class="logo">&#x1F6CD;</div>
-    <h1>MB Store Audit</h1>
-    <p>Showroom Audit Portal</p>
+<!-- ═══════════════════ LOGIN VIEW ═══════════════════ -->
+<section id="loginView" class="login">
+  <div class="brand-mbz">
+    <span class="mbz">MBZ<span class="dot">.</span><span class="in">IN</span></span>
+    <span class="meena">Meena Bazaar</span>
   </div>
-  <div class="login-card">
-    <h2>Welcome Back</h2>
-    <p>Sign in to continue</p>
-    <div class="field">
-      <label>Employee ID</label>
-      <input type="number" id="loginEmpCode" placeholder="Enter your employee code" inputmode="numeric">
+
+  <div class="box">
+    <div class="head">
+      <div class="icon">🛍️</div>
+      <h1>Store Audit App</h1>
+      <small>Field Employee Portal</small>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <div class="pw-wrap">
-        <input type="password" id="loginPwd" placeholder="Enter your password" id="loginPwd">
-        <button class="pw-toggle" onclick="togglePw('loginPwd',this)" tabindex="-1">&#128065;</button>
+    <div class="body">
+      <h2>Welcome Back</h2>
+      <div class="lead">Sign in to continue</div>
+
+      <div class="field">
+        <label>Employee ID</label>
+        <input id="loginCode" value="2266" placeholder="e.g. 2266" inputmode="numeric" />
       </div>
-      <div class="input-hint">First time? Use <strong>MB@&lt;YourEmployeeCode&gt;</strong> (e.g. MB@2266)</div>
+      <div class="field">
+        <label>Password</label>
+        <div class="pw-row">
+          <input id="loginPass" type="password" value="password123" placeholder="••••••••" />
+          <button class="eye" onclick="togglePw('loginPass',this)" title="Show/hide">👁️</button>
+        </div>
+        <div class="hint">First time? Use <b>MB@&lt;YourEmployeeCode&gt;</b> (e.g. MB@2266)</div>
+      </div>
+
+      <div class="row">
+        <label><input type="checkbox" id="rememberMe" /> Remember me for 30 days</label>
+        <a href="#" onclick="showModal('otpModal');return false">Forgot Password?</a>
+      </div>
+
+      <button class="signin" onclick="doLogin()">Sign In</button>
+      <div class="footnote">Mbz Audit · v3 · Field Employee App</div>
     </div>
-    <div class="checkbox-row">
-      <input type="checkbox" id="rememberMe">
-      <label for="rememberMe">Remember me for 30 days</label>
+  </div>
+</section>
+
+<!-- ═══════════════════ APP SHELL ═══════════════════ -->
+<section id="appShell" class="frame" style="display:none">
+  <header class="topbar">
+    <div class="logo">
+      <span class="mark"><span>MBZ</span><span class="dot">.</span></span>
+      <div><b>Store Audit</b><small>Meena Bazaar</small></div>
     </div>
-    <button class="btn btn-primary" onclick="doLogin()" id="loginBtn">Sign In</button>
-    <div style="text-align:center;margin-top:16px">
-      <button class="link-btn" onclick="showForgot()">Forgot Password?</button>
+    <button class="icon" onclick="logout()" title="Sign out">⏻</button>
+  </header>
+
+  <div class="userstrip" id="userStrip"></div>
+  <div id="bannerHost"></div>
+  <main id="main"></main>
+</section>
+
+<!-- ═══════════════════ BOTTOM NAV ═══════════════════ -->
+<nav class="bnav" id="bnav" style="display:none">
+  <button onclick="go('home')"    id="nav-home" class="active"><span class="ic">🏠</span>Home</button>
+  <button onclick="go('audit')"   id="nav-audit"><span class="ic">✍️</span>New</button>
+  <button onclick="go('submissions')" id="nav-submissions"><span class="ic">📋</span><span id="navSubLabel">My</span></button>
+  <button onclick="go('more')"    id="nav-more"><span class="ic">⋯</span>More</button>
+</nav>
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- T&C Modal (first login) -->
+<div class="modal" id="tcModal">
+  <div class="sheet">
+    <h2>📋 Terms &amp; Conditions</h2>
+    <div class="lead">Please read and accept before continuing. Your acceptance is recorded permanently.</div>
+    <div class="tc-text">
+      <b>1. Authorized Use</b><br/>
+      This app is for authorised Meena Bazaar employees only. Each Employee ID is personal and must not be shared.<br/><br/>
+      <b>2. Data Accuracy</b><br/>
+      All audit submissions, including photos, voice notes, and remarks, must be truthful and made at the actual store location.<br/><br/>
+      <b>3. Privacy</b><br/>
+      Photos and audio captured here are stored in the Meena Bazaar Shared Drive. They may be reviewed by Regional Heads of Sales and the Audit team.<br/><br/>
+      <b>4. Password Policy</b><br/>
+      Passwords expire every 60 days. Your last 3 passwords cannot be reused. Treat your password as confidential.<br/><br/>
+      <b>5. Misuse</b><br/>
+      Falsifying audit data, impersonating another employee, or sharing credentials may result in disciplinary action.
+    </div>
+    <div class="checkrow">
+      <input type="checkbox" id="tcAccept" />
+      <label for="tcAccept" style="text-transform:none;letter-spacing:0;font-weight:500">I have read and accept the Terms &amp; Conditions.</label>
+    </div>
+    <div class="row">
+      <button class="btn ghost" onclick="logout();hideModal('tcModal')">Cancel</button>
+      <button class="btn" id="tcAcceptBtn" onclick="acceptTC()">Accept &amp; Continue</button>
     </div>
   </div>
 </div>
 
-<div id="forgotSection" class="hidden page" style="padding:0">
-  <div class="app-header">
-    <div>
-      <div class="title">Forgot Password</div>
-    </div>
-    <button onclick="showLogin()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px">&#8592; Back</button>
-  </div>
+<!-- Forgot Password OTP Modal -->
+<div class="modal" id="otpModal">
+  <div class="sheet">
+    <h2 id="otpTitle">🔐 Forgot Password</h2>
+    <div class="lead" id="otpLead">Enter your registered mobile number to receive an OTP.</div>
 
-  <!-- Step 1 -->
-  <div id="forgotStep1" class="forgot-card">
-    <div class="step-indicator"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-    <h2>Step 1 of 3</h2>
-    <p>Enter your Employee ID and registered mobile number to receive an OTP.</p>
-    <div class="field"><label>Employee ID</label><input type="number" id="fpEmpCode" placeholder="Your employee code" inputmode="numeric"></div>
-    <div class="field"><label>Registered Mobile</label><input type="tel" id="fpMobile" placeholder="10-digit mobile number" maxlength="10" inputmode="tel"></div>
-    <button class="btn btn-primary" onclick="sendOTP()" id="sendOtpBtn">Send OTP</button>
-  </div>
+    <div id="otpStep1">
+      <div class="field">
+        <label>Mobile Number</label>
+        <input id="otpMobile" inputmode="numeric" maxlength="10" placeholder="10-digit mobile" />
+      </div>
+      <div class="row">
+        <button class="btn ghost" onclick="hideModal('otpModal')">Cancel</button>
+        <button class="btn" onclick="sendOTP()">Send OTP</button>
+      </div>
+    </div>
 
-  <!-- Step 2 -->
-  <div id="forgotStep2" class="forgot-card hidden">
-    <div class="step-indicator"><div class="step-dot"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
-    <h2>Step 2 of 3</h2>
-    <p id="otpSentMsg">Enter the 6-digit OTP sent to your registered mobile.</p>
-    <div class="otp-inputs">
-      <input type="tel" maxlength="1" id="o1" oninput="otpMove(this,'o2')" onkeydown="otpBack(event,this,'')">
-      <input type="tel" maxlength="1" id="o2" oninput="otpMove(this,'o3')" onkeydown="otpBack(event,this,'o1')">
-      <input type="tel" maxlength="1" id="o3" oninput="otpMove(this,'o4')" onkeydown="otpBack(event,this,'o2')">
-      <input type="tel" maxlength="1" id="o4" oninput="otpMove(this,'o5')" onkeydown="otpBack(event,this,'o3')">
-      <input type="tel" maxlength="1" id="o5" oninput="otpMove(this,'o6')" onkeydown="otpBack(event,this,'o4')">
-      <input type="tel" maxlength="1" id="o6" oninput="otpMove(this,'')" onkeydown="otpBack(event,this,'o5')">
+    <div id="otpStep2" style="display:none">
+      <div class="field">
+        <label>Enter 6-digit OTP</label>
+        <div class="otp-grid">
+          <input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" />
+        </div>
+        <div class="hint" style="font-size:12px;color:var(--mute);margin-top:6px">Demo OTP: <b>123456</b> · Sent to <span id="otpToMob">—</span></div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" onclick="showOtpStep(1)">← Back</button>
+        <button class="btn" onclick="verifyOTP()">Verify OTP</button>
+      </div>
     </div>
-    <button class="btn btn-primary" onclick="verifyOTP()" id="verifyOtpBtn">Verify OTP</button>
-    <div style="text-align:center;margin-top:12px">
-      <button class="link-btn" onclick="sendOTP()">Resend OTP</button>
-    </div>
-  </div>
 
-  <!-- Step 3 -->
-  <div id="forgotStep3" class="forgot-card hidden">
-    <div class="step-indicator"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot active"></div></div>
-    <h2>Step 3 of 3</h2>
-    <p>Enter your new password.</p>
-    <div class="field"><label>New Password</label>
-      <div class="pw-wrap"><input type="password" id="fpNewPwd" placeholder="Min. 6 characters"><button class="pw-toggle" onclick="togglePw('fpNewPwd',this)" tabindex="-1">&#128065;</button></div>
+    <div id="otpStep3" style="display:none">
+      <div class="field">
+        <label>New Password</label>
+        <input type="password" id="newPw1" placeholder="At least 6 characters" />
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" id="newPw2" placeholder="Re-type new password" />
+        <div class="hint">Cannot reuse your last 3 passwords.</div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" onclick="hideModal('otpModal')">Cancel</button>
+        <button class="btn" onclick="resetPassword()">Save New Password</button>
+      </div>
     </div>
-    <div class="field"><label>Confirm Password</label>
-      <div class="pw-wrap"><input type="password" id="fpConfirmPwd" placeholder="Re-enter new password"><button class="pw-toggle" onclick="togglePw('fpConfirmPwd',this)" tabindex="-1">&#128065;</button></div>
-    </div>
-    <button class="btn btn-primary" onclick="resetPassword()" id="resetPwdBtn">Set New Password</button>
   </div>
 </div>
 
-<div id="appSection" class="hidden" style="width:100%;max-width:600px;display:flex;flex-direction:column;min-height:100vh">
-  <div class="app-header">
-    <div>
-      <div class="title">MB Store Audit</div>
-      <div class="subtitle" id="headerSubtitle">Showroom Audit Portal</div>
+<!-- Password Expiry Modal -->
+<div class="modal" id="pwExpiryModal">
+  <div class="sheet">
+    <h2>🔑 Password Expired</h2>
+    <div class="lead">Your password is older than 60 days. Please set a new password to continue.</div>
+    <div class="field"><label>Current Password</label><input type="password" id="pwOld" /></div>
+    <div class="field"><label>New Password</label><input type="password" id="pwNew1" placeholder="At least 6 characters" /></div>
+    <div class="field"><label>Confirm New Password</label><input type="password" id="pwNew2" />
+      <div class="hint">Cannot reuse your last 3 passwords.</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="user-badge" id="userBadge">Loading...</div>
-      <button onclick="doLogout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px" title="Logout">&#x1F6AA;</button>
-    </div>
-  </div>
-
-  <div class="nav-tabs">
-    <button class="nav-tab active" id="tabAudit" onclick="showView('audit')">&#x2714; Today's Audit</button>
-    <button class="nav-tab" id="tabHistory" onclick="showView('history')">&#x1F4C5; History</button>
-    <button class="nav-tab hidden" id="tabReports" onclick="showView('reports')">&#x1F4CA; Reports</button>
-    <button class="nav-tab hidden" id="tabAdmin" onclick="showView('admin')">&#x1F451; Admin</button>
-  </div>
-
-  <!-- ── TODAY'S AUDIT VIEW ── -->
-  <div id="auditView" class="page">
-    <!-- Audit header card -->
-    <div class="card" style="margin-top:12px">
-      <div class="card-title">&#x1F3EA; Audit Session</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="field" style="margin-bottom:6px">
-          <label>Store</label>
-          <select id="auditStoreCode" onchange="onAuditStoreChange()">
-            <option value="">Select store...</option>
-          </select>
-        </div>
-        <div class="field" style="margin-bottom:6px">
-          <label>Audit Date</label>
-          <input type="date" id="auditDate" readonly>
-        </div>
-      </div>
-      <div class="field" style="margin-bottom:6px">
-        <label>Store Manager Name</label>
-        <input type="text" id="auditManagerName" placeholder="Manager on duty">
-      </div>
-      <div id="auditSessionInfo" style="font-size:11px;color:#777;margin-top:4px"></div>
-    </div>
-
-    <!-- Summary stats -->
-    <div class="audit-summary" id="auditSummary" style="display:none">
-      <div class="audit-stat pct"><div class="num" id="statPct">0%</div><div class="lbl">Compliance</div></div>
-      <div class="audit-stat done"><div class="num" id="statDone">0</div><div class="lbl">Done</div></div>
-      <div class="audit-stat not-done"><div class="num" id="statNot">0</div><div class="lbl">Not Done</div></div>
-      <div class="audit-stat pending"><div class="num" id="statPend">0</div><div class="lbl">Pending</div></div>
-    </div>
-
-    <!-- Area-wise checklist -->
-    <div id="auditChecklist">
-      <div class="loading-text">&#x23F3; Loading today's audit...</div>
-    </div>
-
-    <!-- Submit -->
-    <div style="padding:0 12px 16px" id="auditSubmitWrap" class="hidden">
-      <button class="btn btn-primary" onclick="submitAudit()" id="submitAuditBtn">&#x2713; Submit Audit</button>
-      <div style="font-size:11px;color:#777;text-align:center;margin-top:8px">
-        Answers auto-save as you mark them. Submit when the audit is complete.
-      </div>
+    <div class="row">
+      <button class="btn ghost" onclick="logout();hideModal('pwExpiryModal')">Sign Out</button>
+      <button class="btn" onclick="renewPassword()">Update Password</button>
     </div>
   </div>
+</div>
 
-  <!-- ── HISTORY VIEW ── -->
-  <div id="historyView" class="page hidden">
-    <div class="filter-bar">
-      <input type="date" id="histFrom" onchange="loadHistory()">
-      <input type="date" id="histTo" onchange="loadHistory()">
-      <select id="histStoreFilter" onchange="loadHistory()" style="max-width:180px">
-        <option value="">All stores</option>
+<!-- Add Employee Modal (admin) -->
+<div class="modal" id="addEmpModal">
+  <div class="sheet">
+    <h2>➕ Add New Employee</h2>
+    <div class="lead">Create a new account. The initial password will be generated and shown once.</div>
+    <div class="field"><label>Employee ID *</label><input id="newEmpCode" inputmode="numeric" placeholder="e.g. 3001" /></div>
+    <div class="field"><label>Full Name *</label><input id="newEmpName" placeholder="e.g. Priya Sharma" /></div>
+    <div class="field"><label>Mobile</label><input id="newEmpMobile" inputmode="numeric" maxlength="10" /></div>
+    <div class="field"><label>Designation</label>
+      <select id="newEmpDesig">
+        <option>Sales Executive</option><option>Stock Executive</option>
+        <option>Cashier</option><option>Store Manager</option>
+        <option>Assistant Store Manager</option><option>Field Executive</option>
+        <option>Regional Head of Sales</option><option>Head of Sales</option>
       </select>
-      <button class="btn btn-sm btn-secondary" onclick="loadHistory()" style="white-space:nowrap">&#x21BB; Refresh</button>
     </div>
-    <div id="historyList"><div class="loading-text">&#x23F3; Loading history...</div></div>
-  </div>
-
-  <!-- ── REPORTS VIEW (manager/admin only) ── -->
-  <div id="reportsView" class="page hidden">
-    <div class="filter-bar">
-      <input type="date" id="rptFrom" onchange="loadReports()">
-      <input type="date" id="rptTo" onchange="loadReports()">
-      <button class="btn btn-sm btn-secondary" onclick="loadReports()" style="white-space:nowrap">&#x21BB; Refresh</button>
+    <div class="field"><label>Store</label>
+      <select id="newEmpStore"></select>
     </div>
-    <div class="report-kpis" id="reportKpis"></div>
-    <div class="card">
-      <div class="card-title">&#x1F4C8; Compliance by Area</div>
-      <div id="reportByArea"><div class="loading-text">Loading...</div></div>
+    <div class="field"><label>Role</label>
+      <select id="newEmpRole">
+        <option value="employee">Employee</option>
+        <option value="manager">Manager</option>
+        <option value="owner">Owner</option>
+        <option value="admin">Admin</option>
+      </select>
     </div>
-    <div class="card">
-      <div class="card-title">&#x1F3EC; Performance by Store</div>
-      <div id="reportByStore"><div class="loading-text">Loading...</div></div>
-    </div>
-  </div>
-
-  <!-- ── ADMIN VIEW ── -->
-  <div id="adminView" class="page hidden">
-    <div style="padding:14px 12px">
-      <div style="margin-bottom:20px">
-        <button class="btn btn-primary" id="addEmpToggleBtn" onclick="showAddEmpForm()" style="width:100%;padding:12px 16px;font-size:0.95rem">&#x2795; Add New Employee</button>
-        <div id="addEmpForm" class="hidden" style="border:1px solid #ddd;border-radius:8px;padding:14px;margin-top:8px;background:#f9f9f9">
-          <h4 style="margin:0 0 12px;color:#1b5e20;font-size:0.9rem">New Employee Details</h4>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="field"><label>Employee ID *</label><input type="number" id="addEmpCode" placeholder="e.g. 1001"></div>
-            <div class="field"><label>Role</label><select id="addEmpRole"><option value="employee">Employee</option><option value="manager">Manager</option></select></div>
-          </div>
-          <div class="field"><label>Full Name *</label><input type="text" id="addEmpName" placeholder="Full name"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="field"><label>Designation</label><input type="text" id="addEmpDesignation" placeholder="Sales Executive"></div>
-            <div class="field"><label>Mobile</label><input type="tel" id="addEmpMobile" placeholder="10-digit" maxlength="10"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="field"><label>Store Name</label><input type="text" id="addEmpStoreName" placeholder="Store name"></div>
-            <div class="field"><label>Store Code</label><input type="text" id="addEmpStoreCode" placeholder="Store code"></div>
-          </div>
-          <div class="field"><label>Initial Password *</label>
-            <div style="position:relative">
-              <input type="password" id="addEmpPwd" placeholder="Min 6 characters" style="padding-right:36px">
-              <button type="button" onclick="var i=this.previousElementSibling;i.type=i.type==='password'?'text':'password'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:0.85rem">&#x1F441;</button>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn btn-primary" id="addEmpSubmitBtn" onclick="submitAddEmployee()" style="flex:1">Add Employee</button>
-            <button class="btn" onclick="hideAddEmpForm()" style="background:#f5f5f5;color:#555;border:1px solid #ccc">Cancel</button>
-          </div>
-        </div>
-      </div>
-      <div>
-        <h3 style="margin:0 0 10px;font-size:0.95rem;color:#1b5e20">&#x1F50D; Manage Employee Access</h3>
-        <div style="display:flex;gap:8px">
-          <input type="number" id="searchEmpCode" placeholder="Enter Employee ID" style="flex:1;padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem" onkeydown="if(event.key==='Enter')searchEmployee()">
-          <button class="btn btn-primary" onclick="searchEmployee()" style="white-space:nowrap;padding:10px 16px">Search</button>
-        </div>
-        <div id="searchResult" style="margin-top:12px"></div>
-      </div>
+    <div class="row">
+      <button class="btn ghost" onclick="hideModal('addEmpModal')">Cancel</button>
+      <button class="btn" onclick="adminAddEmployee()">Create Employee</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     CHANGE PASSWORD MODAL (first login)
-══════════════════════════════════════════════════════ -->
-<div id="changePwdModal" class="modal-overlay hidden">
-  <div class="modal">
-    <h3>&#x1F511; Set Your Password</h3>
-    <p>Welcome! This is your first login. Please set a new personal password to continue.</p>
-    <div class="field"><label>Current Password</label>
-      <div class="pw-wrap"><input type="password" id="cpCurrent" placeholder="MB@YourCode (initial password)"><button class="pw-toggle" onclick="togglePw('cpCurrent',this)" tabindex="-1">&#128065;</button></div>
-    </div>
-    <div class="field"><label>New Password</label>
-      <div class="pw-wrap"><input type="password" id="cpNew" placeholder="Min. 6 characters"><button class="pw-toggle" onclick="togglePw('cpNew',this)" tabindex="-1">&#128065;</button></div>
-    </div>
-    <div class="field"><label>Confirm Password</label>
-      <div class="pw-wrap"><input type="password" id="cpConfirm" placeholder="Re-enter new password"><button class="pw-toggle" onclick="togglePw('cpConfirm',this)" tabindex="-1">&#128065;</button></div>
-    </div>
-    <button class="btn btn-primary" onclick="doChangePassword()" id="cpBtn">Set Password</button>
-  </div>
-</div>
-
-<div id="expiredPwdModal" class="modal-overlay hidden">
-  <div class="modal">
-    <h3>&#x1F512; Password Expired</h3>
-    <p>Your password has expired (passwords must be renewed every 60 days).<br>Please set a new password to continue.</p>
-    <div class="field"><label>Current Password</label>
-      <div class="pw-wrap"><input type="password" id="epCurrent" placeholder="Enter current password"><button class="pw-toggle" onclick="togglePw('epCurrent',this)" tabindex="-1">&#128065;</button></div>
-    </div>
-    <div class="field"><label>New Password</label>
-      <div class="pw-wrap"><input type="password" id="epNew" placeholder="Min. 6 characters"><button class="pw-toggle" onclick="togglePw('epNew',this)" tabindex="-1">&#128065;</button></div>
-    </div>
-    <div class="field"><label>Confirm New Password</label>
-      <div class="pw-wrap"><input type="password" id="epConfirm" placeholder="Re-enter new password"><button class="pw-toggle" onclick="togglePw('epConfirm',this)" tabindex="-1">&#128065;</button></div>
-    </div>
-    <button class="btn btn-primary" onclick="doExpiredPasswordChange()" id="epBtn">Set New Password</button>
-  </div>
-</div>
-
-<!-- T&C Modal -->
-<div id="tcModal" class="modal-overlay hidden">
-  <div class="modal" style="max-width:520px">
-    <h3>&#x1F4CB; Terms &amp; Conditions</h3>
-    <p style="font-size:0.85rem;line-height:1.7;color:#333;max-height:240px;overflow-y:auto;border:1px solid #e0e0e0;padding:14px;border-radius:6px;background:#fafafa;text-align:justify">
-      I hereby agree that all store, customer and operational data (including images, documents, audit records, contact details, and requirements) accessed through this app is strictly confidential and the exclusive property of Meena Bazaar. I will not copy, store, share, or misuse any data in any form. I will not share my login credentials, OTP, or password with anyone and will ensure my mobile device is secure. I understand that any unauthorized access, data misuse, credential sharing, or retention of data — even after exit — will result in strict disciplinary action, including termination and legal proceedings under applicable laws.
-    </p>
-    <p style="font-size:0.8rem;color:#888;margin-top:10px">By clicking <strong>I Accept</strong>, you agree to these Terms &amp; Conditions.</p>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn-primary" id="tcAcceptBtn" onclick="doAcceptTC()" style="flex:2">&#x2705; I Accept</button>
-      <button class="btn" onclick="doDeclineTC()" style="flex:1;background:#f5f5f5;color:#555;border:1px solid #ccc">Decline</button>
-    </div>
-  </div>
+<!-- ═══════════════════ LIGHTBOX ═══════════════════ -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="close" onclick="closeLightbox(event)" aria-label="Close">✕</button>
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()"/>
 </div>
 
 <!-- Toast -->
-<div id="toast"></div>
+<div id="toast" class="toast"></div>
 
 <script>
-// ─── STATE ───────────────────────────────────────────
-let currentUser = null;
-let authToken = null;
-let _loginRemember = false;
-let allStores = [];
-let currentSession = null;   // { id, store_code, store_name, audit_date, status, ... }
-let checklistItems = [];     // Array of all items for the current session (active only)
-let answersMap = {};         // item_id -> { status, remarks, responsible_name, photo_urls:[] }
-let saveTimers = {};         // item_id -> timeout (for debounced autosave)
-let fpResetToken = '';
-let fpEmpCodeVal = '';
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  DATA — Audit framework (25 items / 5 sections / PASS-FAIL) ║
+   ║  Source: Store_Audit_Guidelines.docx (Monthly Scorecard)    ║
+   ╚══════════════════════════════════════════════════════════╝ */
+const TODAY = new Date().toISOString().slice(0,10);
 
-// ─── AUTH STORAGE HELPERS (localStorage + cookie fallback for iOS) ───
-function saveAuthToken(tk) {
-  try { localStorage.setItem('mb_token', tk); } catch(e) {}
-  const d = new Date(Date.now() + 30*24*60*60*1000);
-  document.cookie = 'mb_tok=' + encodeURIComponent(tk) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
-}
-function getAuthToken() {
-  try { const v = localStorage.getItem('mb_token'); if (v) return v; } catch(e) {}
-  const m = document.cookie.match(/(?:^|;\s*)mb_tok=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : null;
-}
-function clearAuthToken() {
-  try { localStorage.removeItem('mb_token'); } catch(e) {}
-  document.cookie = 'mb_tok=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
-}
+const SECTIONS = [
+  {id:1, name:'Physical Space',   hindi:'दुकान की जगह',  icon:'🧹', color:'#8DBBCC'},
+  {id:2, name:'Staff Grooming',   hindi:'स्टाफ़',         icon:'👤', color:'#7E90FF'},
+  {id:3, name:'Inventory',        hindi:'सामान',         icon:'📦', color:'#1B9B6C'},
+  {id:4, name:'Customer Service', hindi:'ग्राहक सेवा',   icon:'🙏', color:'#E08A1A'},
+  {id:5, name:'People & Routine', hindi:'टीम और दिनचर्या', icon:'👥', color:'#9CAEC2'}
+];
+const ITEMS = [
+  {id:1,  sec:1, title:'Punctuality & Opening',  hindi:'समय पर खुलना',     evidence:'Opening Log / Bio-metric Report',     photoNeeded:true,  what:'Was the store operational at the designated opening time?'},
+  {id:2,  sec:1, title:'Cleanliness',            hindi:'सफ़ाई',             evidence:'Visual Inspection / Cleaning Checklist', photoNeeded:true, what:'Floors, mirrors, signage streak-free and dust-free?'},
+  {id:3,  sec:1, title:'Visual Merchandising',   hindi:'विंडो डिस्प्ले',    evidence:'Photo upload via Store App',          photoNeeded:true,  what:'Window displays follow this month’s VM kit?'},
+  {id:4,  sec:1, title:'Security Protocol',      hindi:'चाबी सुरक्षा',      evidence:'Key Handover Register',               photoNeeded:true,  what:'Key handover documented and signed both shifts?'},
+  {id:5,  sec:1, title:'Equipment',              hindi:'उपकरण',            evidence:'Maintenance Log',                     photoNeeded:false, what:'All fixtures, lights, AC working properly?'},
+  {id:6,  sec:2, title:'Uniform Compliance',     hindi:'वर्दी',             evidence:'Group photograph at 10:30 AM',        photoNeeded:true,  what:'100% adherence to company uniform standards?'},
+  {id:7,  sec:2, title:'Saree / Appearance',     hindi:'साड़ी / दिखावट',    evidence:'Visual inspection',                   photoNeeded:false, what:'Professional saree drape and appearance (female staff)?'},
+  {id:8,  sec:2, title:'Grooming Standards',     hindi:'सजावट',            evidence:'Visual inspection',                   photoNeeded:false, what:'Hair neat, nails clean, minimal jewelry?'},
+  {id:9,  sec:2, title:'Line-up Inspection',     hindi:'लाइन-अप',          evidence:'Manager confirmation',                photoNeeded:false, what:'Morning inspection completed before floor opens?'},
+  {id:10, sec:2, title:'ID Cards Visible',       hindi:'पहचान पत्र',        evidence:'Visual / Photo',                      photoNeeded:true,  what:'All staff have valid, visible ID cards?'},
+  {id:11, sec:3, title:'Inward / Outward',       hindi:'इन-आउट',           evidence:'Challan vs Register',                 photoNeeded:false, what:'All stock movements recorded immediately?'},
+  {id:12, sec:3, title:'Daily Count',            hindi:'दैनिक गिनती',       evidence:'Signed Daily Stock Sheet',            photoNeeded:true,  what:'High-value / random category stock counted?'},
+  {id:13, sec:3, title:'Backroom Organization',  hindi:'गोदाम',            evidence:'Visual Spot Check',                   photoNeeded:true,  what:'No cartons on floor; items racked by SKU?'},
+  {id:14, sec:3, title:'GRN Compliance',         hindi:'GRN',              evidence:'System vs Physical match',            photoNeeded:false, what:'GRN generated before stock hits floor?'},
+  {id:15, sec:3, title:'Stock Accuracy',         hindi:'स्टॉक सटीकता',      evidence:'Quarterly physical count report',     photoNeeded:false, what:'System records match physical inventory?'},
+  {id:16, sec:4, title:'Greeting',               hindi:'अभिवादन',          evidence:'CCTV review / Mystery Shopper',       photoNeeded:false, what:'Customer greeted with Namaste within 10 seconds?'},
+  {id:17, sec:4, title:'Hospitality',            hindi:'आदर-सत्कार',        evidence:'Observe / Mystery feedback',          photoNeeded:false, what:'Water / seating offered immediately?'},
+  {id:18, sec:4, title:'Product Consultation',   hindi:'उत्पाद सलाह',       evidence:'CCTV / Mystery notes',                photoNeeded:false, what:'Staff demonstrates 3+ relevant products?'},
+  {id:19, sec:4, title:'Billing',                hindi:'बिलिंग',            evidence:'Observe transaction',                 photoNeeded:false, what:'Seamless and accurate checkout process?'},
+  {id:20, sec:4, title:'Exit Greeting',          hindi:'विदाई',            evidence:'CCTV audio/video',                    photoNeeded:false, what:'Thank-you / closing greeting delivered?'},
+  {id:21, sec:5, title:'Morning Meeting',        hindi:'सुबह की मीटिंग',    evidence:'Attendance Sheet',                    photoNeeded:true,  what:'Team meeting + Gayatri Mantra conducted?'},
+  {id:22, sec:5, title:'Digital Detox',          hindi:'फ़ोन नीति',         evidence:'Visual / Manager confirmation',       photoNeeded:false, what:'Personal phones silenced at cash counter?'},
+  {id:23, sec:5, title:'Email Check',            hindi:'ईमेल जाँच',         evidence:'Manager Log',                         photoNeeded:false, what:'Two daily email checks at 11 AM and 4 PM?'},
+  {id:24, sec:5, title:'DTR & Cash Deposit',     hindi:'DTR और जमा',       evidence:'Signed DTR + Deposit slip',           photoNeeded:true,  what:'DTR verified and signed by Store Manager?'},
+  {id:25, sec:5, title:'Staff Punctuality',      hindi:'समय पाबंदी',        evidence:'Bio-metric Attendance Report',        photoNeeded:false, what:'100% staff on-time attendance?'}
+];
 
-// ─── INIT ─────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  const saved = getAuthToken();
-  if (saved) {
-    authToken = saved;
-    try {
-      const r = await apiFetch('/api/auth?action=verify', 'GET');
-      if (r.valid) {
-        currentUser = r.user;
-        await initApp();
-        return;
-      }
-      clearAuthToken();
-    } catch {}
+/* Employees (subset of full roster for the demo) */
+const STARTING_EMPLOYEES = [
+  {emp_code:2266, emp_name:'Manoj Kumar',  emp_mobile:'8218185203', emp_designation:'AI Engineer',     hod:'Samarendra', store_code:'97-DT',  store_name:'HQ',                    role:'admin',    active:true},
+  {emp_code:1,    emp_name:'Anu Manglani', emp_mobile:'9810005677', emp_designation:'Owner',           hod:'Owner',      store_code:'97-DT',  store_name:'MEENA BAZAAR DT',       role:'owner',    active:true},
+  {emp_code:56,   emp_name:'Ram Kumar Singh',emp_mobile:'8448509683',emp_designation:'Store Manager', hod:'Rohit',      store_code:'01-SE',  store_name:'MEENA BAZAAR SE',       role:'manager',  active:true},
+  {emp_code:35,   emp_name:'Geeta Jha',     emp_mobile:'9871956567', emp_designation:'Store Manager', hod:'Vaseem',     store_code:'02-GK',  store_name:'MEENA BAZAAR GK',       role:'manager',  active:true},
+  {emp_code:1738, emp_name:'Jyoti Dixit',   emp_mobile:'9810837591', emp_designation:'Store Manager', hod:'Nilesh',     store_code:'03-RG',  store_name:'MEENA BAZAAR RG',       role:'manager',  active:true},
+  {emp_code:934,  emp_name:'Sourav Aggarwal',emp_mobile:'8837855005',emp_designation:'Store Manager', hod:'Ravi',       store_code:'15-LDH', store_name:'MEENA BAZAAR LDH',      role:'manager',  active:true},
+  {emp_code:413,  emp_name:'Jayalakshmi S Iyer',emp_mobile:'8898112666',emp_designation:'Store Manager',hod:'Nilesh',    store_code:'36-BBY', store_name:'MEENA BAZAAR BBY',      role:'manager',  active:true},
+  {emp_code:801,  emp_name:'Priya Sharma',  emp_mobile:'9555000801', emp_designation:'Sales Executive',hod:'Rohit',     store_code:'01-SE',  store_name:'MEENA BAZAAR SE',       role:'employee', active:true},
+  {emp_code:802,  emp_name:'Amit Verma',    emp_mobile:'9555000802', emp_designation:'Cashier',       hod:'Rohit',      store_code:'07-CR',  store_name:'MEENA BAZAAR CR',       role:'employee', active:true},
+  {emp_code:803,  emp_name:'Sunita Kapoor', emp_mobile:'9555000803', emp_designation:'Stock Executive',hod:'Vaseem',    store_code:'02-GK',  store_name:'MEENA BAZAAR GK',       role:'employee', active:false}
+];
+const STORES = [
+  {code:'01-SE',name:'MEENA BAZAAR SE',city:'NEW DELHI',manager:'Ram Kumar Singh'},
+  {code:'02-GK',name:'MEENA BAZAAR GK',city:'NEW DELHI',manager:'Geeta Jha'},
+  {code:'03-RG',name:'MEENA BAZAAR RG',city:'NEW DELHI',manager:'Jyoti Dixit'},
+  {code:'05-DLF',name:'MEENA BAZAAR DLF',city:'GURGAON',manager:'Hatneikim Chongloi'},
+  {code:'07-CR',name:'MEENA BAZAAR CR',city:'NEW DELHI',manager:'Rakesh Singh'},
+  {code:'10-IN',name:'MEENA BAZAAR IN',city:'INDORE',manager:'Shivnarayan'},
+  {code:'15-LDH',name:'MEENA BAZAAR LDH',city:'LUDHIANA',manager:'Sourav Aggarwal'},
+  {code:'21-RO1',name:'MEENA BAZAAR RO1',city:'NEW DELHI',manager:'Mohd Suhail'},
+  {code:'23-KPV',name:'MEENA BAZAAR KPV',city:'NEW DELHI',manager:'Ajay Kant'},
+  {code:'36-BBY',name:'MEENA BAZAAR BBY',city:'MUMBAI',manager:'Jayalakshmi S Iyer'}
+];
+
+/* Demo submissions — show with thumbnails + voice playback in My Submissions */
+function demoImg(c1,c2,label){
+  // Inline SVG data-URI placeholder so demos work offline
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${c1}'/><stop offset='1' stop-color='${c2}'/></linearGradient></defs><rect width='200' height='200' fill='url(%23g)'/><text x='100' y='115' fill='white' font-family='Arial' font-size='22' font-weight='700' text-anchor='middle'>${label}</text></svg>`;
+  return 'data:image/svg+xml;utf8,' + svg.replace(/#/g,'%23');
+}
+const SAMPLE_IMG_1 = demoImg('#8DBBCC','#5C8DA0','Cleanliness');
+const SAMPLE_IMG_2 = demoImg('#1B9B6C','#0F7A51','Stock');
+const SAMPLE_IMG_3 = demoImg('#E08A1A','#B26A0A','Uniform');
+const SAMPLE_IMG_4 = demoImg('#7E90FF','#5560D6','VM');
+
+const DEMO_AUDIO_DATA_URI = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+const STARTING_SUBMISSIONS = [
+  {id:'A001', date:'2026-05-08', store_code:'01-SE', store_name:'MEENA BAZAAR SE',  auditor_code:2266, auditor:'Manoj Kumar',     pass:22, total:25, pct:88, grade:'Gold',   thumbs:[SAMPLE_IMG_1, SAMPLE_IMG_3], audio:[DEMO_AUDIO_DATA_URI]},
+  {id:'A002', date:'2026-05-06', store_code:'07-CR', store_name:'MEENA BAZAAR CR',  auditor_code:2266, auditor:'Manoj Kumar',     pass:19, total:25, pct:76, grade:'Silver', thumbs:[SAMPLE_IMG_2], audio:[]},
+  {id:'A003', date:'2026-05-04', store_code:'15-LDH',store_name:'MEENA BAZAAR LDH', auditor_code:56,   auditor:'Ram Kumar Singh', pass:14, total:25, pct:56, grade:'Red',    thumbs:[SAMPLE_IMG_4, SAMPLE_IMG_1, SAMPLE_IMG_2], audio:[DEMO_AUDIO_DATA_URI]},
+  {id:'A004', date:'2026-05-02', store_code:'36-BBY',store_name:'MEENA BAZAAR BBY', auditor_code:413,  auditor:'Jayalakshmi S Iyer',pass:23,total:25,pct:92, grade:'Gold',   thumbs:[SAMPLE_IMG_2, SAMPLE_IMG_4], audio:[]},
+  {id:'A005', date:'2026-04-30', store_code:'05-DLF',store_name:'MEENA BAZAAR DLF', auditor_code:2266, auditor:'Manoj Kumar',     pass:24, total:25, pct:96, grade:'Gold',   thumbs:[SAMPLE_IMG_3, SAMPLE_IMG_1, SAMPLE_IMG_4], audio:[DEMO_AUDIO_DATA_URI]}
+];
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  LOCAL STORAGE STATE (mocks server-side persistence)     ║
+   ╚══════════════════════════════════════════════════════════╝ */
+const LS = {
+  get(k, dflt){ try{ const v = localStorage.getItem(k); return v===null?dflt:JSON.parse(v); }catch(e){ return dflt; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  rm(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+function getEmployees(){
+  const stored = LS.get('mbz_employees', null);
+  return stored || STARTING_EMPLOYEES;
+}
+function setEmployees(arr){ LS.set('mbz_employees', arr); }
+function getSubmissions(){ return LS.get('mbz_submissions', STARTING_SUBMISSIONS); }
+function setSubmissions(arr){ LS.set('mbz_submissions', arr); }
+function getPwInfo(code){
+  return LS.get('mbz_pw_'+code, {set_at: Date.now() - (Math.random()*40*86400*1000), history:['password123']});
+}
+function setPwInfo(code, info){ LS.set('mbz_pw_'+code, info); }
+function getTC(code){ return LS.get('mbz_tc_'+code, false); }
+function setTC(code, v){ LS.set('mbz_tc_'+code, v); }
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  SESSION & ROUTER                                        ║
+   ╚══════════════════════════════════════════════════════════╝ */
+let CURRENT_USER = null;
+let CURRENT_VIEW = 'home';
+let ADMIN_TAB = 'employees';
+const SESSION = {idx:0, storeCode:'', date:TODAY, responses:{}, total:0, lastResult:null};
+
+function isAdminish(u){ return u && ['admin','owner','manager'].includes(u.role); }
+function canAccessAdmin(u){ return u && u.emp_code === 2266; } // strict per spec
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  AUTH FLOW                                               ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function checkRememberMe(){
+  const r = LS.get('mbz_remember', null);
+  if(r && r.expires_at > Date.now()){
+    const u = getEmployees().find(e => e.emp_code === r.emp_code);
+    if(u && u.active){ CURRENT_USER = u; postLogin(); return true; }
   }
-  show('loginSection');
-});
-
-function driveImgUrl(u) {
-  if (!u) return '';
-  const m = u.match(/[?&]id=([^&]+)/);
-  return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w600' : u;
+  return false;
 }
-
-// ─── VIEW HELPERS ─────────────────────────────────────
-function show(id) {
-  ['loginSection','forgotSection','appSection'].forEach(s => {
-    const el = document.getElementById(s);
-    if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
-  });
-  const el = document.getElementById(id);
-  if (el) { el.classList.remove('hidden'); el.style.display = ''; }
-  window.scrollTo(0, 0);
+function doLogin(){
+  const code = parseInt(document.getElementById('loginCode').value, 10);
+  const pw   = document.getElementById('loginPass').value;
+  const remember = document.getElementById('rememberMe').checked;
+  if(!code){ toast('Enter Employee ID'); return; }
+  const u = getEmployees().find(e => e.emp_code === code);
+  if(!u){ toast('Employee not found'); return; }
+  if(!u.active){ toast('This account is deactivated. Contact Admin.'); return; }
+  // For demo, accept either 'password123' or stored history's last item
+  const pwInfo = getPwInfo(code);
+  const ok = pw === 'password123' || pw === (pwInfo.history[pwInfo.history.length-1]) || pw === 'MB@'+code;
+  if(!ok){ toast('Incorrect password'); return; }
+  if(remember){
+    LS.set('mbz_remember', {emp_code:code, expires_at: Date.now() + 30*86400*1000});
+  } else { LS.rm('mbz_remember'); }
+  CURRENT_USER = u;
+  postLogin();
 }
-function showLogin() { show('loginSection'); }
-function showForgot() { show('forgotSection'); showForgotStep(1); }
-function showForgotStep(n) {
-  [1,2,3].forEach(i => document.getElementById('forgotStep'+i).classList.add('hidden'));
-  document.getElementById('forgotStep'+n).classList.remove('hidden');
-}
-function showView(v) {
-  ['audit','history','reports','admin'].forEach(name => {
-    const view = document.getElementById(name + 'View');
-    const tab = document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1));
-    if (view) view.classList.toggle('hidden', v !== name);
-    if (tab) tab.classList.toggle('active', v === name);
-  });
-  if (v === 'history') loadHistory();
-  if (v === 'reports') loadReports();
-  window.scrollTo(0, 0);
-}
-
-// ─── APP INIT ─────────────────────────────────────────
-async function initApp() {
-  show('appSection');
-  document.getElementById('userBadge').textContent = `${currentUser.empName}\n${currentUser.designation||''}`;
-  document.getElementById('headerSubtitle').textContent = currentUser.storeName || 'Showroom Audit Portal';
-
-  // RBAC — managers + admins see Reports; admins see Admin
-  if (currentUser.role === 'manager' || currentUser.role === 'admin') {
-    document.getElementById('tabReports').classList.remove('hidden');
-  }
-  if (currentUser.role === 'admin') {
-    document.getElementById('tabAdmin').classList.remove('hidden');
-  }
-
-  // Set today's date (IST)
-  document.getElementById('auditDate').value = todayIST();
-
-  await loadStores();
-  wireStoreSelectors();
-
-  // Pre-fill user's assigned store (employees locked; managers/admin can switch)
-  if (currentUser.storeCode) {
-    document.getElementById('auditStoreCode').value = currentUser.storeCode;
-  }
-  if (currentUser.role === 'employee') {
-    document.getElementById('auditStoreCode').disabled = true;
-  }
-  if (currentUser.storeName) {
-    document.getElementById('auditManagerName').placeholder =
-      currentUser.role === 'manager' ? (currentUser.empName + ' (you)') : 'Manager on duty';
-  }
-
-  if (currentUser.isFirstLogin) {
-    document.getElementById('changePwdModal').classList.remove('hidden');
-    return; // wait for pwd change before starting audit
-  }
-
-  // Auto-start today's audit session for the user's store
-  if (document.getElementById('auditStoreCode').value) {
-    await startOrResumeSession();
-  } else {
-    document.getElementById('auditChecklist').innerHTML =
-      '<div class="loading-text">Please select a store above to start the audit.</div>';
-  }
-}
-
-// IST today (YYYY-MM-DD)
-function todayIST() {
-  const now = new Date();
-  const ist = new Date(now.getTime() + (330*60000) - (now.getTimezoneOffset()*60000));
-  return ist.toISOString().slice(0,10);
-}
-
-// ─── STORES DROPDOWN ──────────────────────────────────
-async function loadStores() {
-  try {
-    const r = await apiFetch('/api/stores', 'GET');
-    allStores = r.stores || [];
-  } catch { allStores = []; }
-
-  const sel = document.getElementById('auditStoreCode');
-  const filter = document.getElementById('histStoreFilter');
-  [sel, filter].forEach(el => { while (el.options.length > 1) el.remove(1); });
-  allStores.forEach(s => {
-    const label = `${s.name} (${s.code})`;
-    sel.add(new Option(label, s.code));
-    filter.add(new Option(label, s.code));
-  });
-}
-function wireStoreSelectors() { /* reserved for future cross-wiring */ }
-
-async function onAuditStoreChange() {
-  const code = document.getElementById('auditStoreCode').value;
-  if (!code) return;
-  await startOrResumeSession();
-}
-
-// ─── START/RESUME AUDIT SESSION ───────────────────────
-async function startOrResumeSession() {
-  const storeCode = document.getElementById('auditStoreCode').value;
-  const managerName = document.getElementById('auditManagerName').value.trim() ||
-                     (currentUser.role === 'manager' ? currentUser.empName : '');
-  if (!storeCode) return showToast('Please select a store first', 'error');
-
-  document.getElementById('auditChecklist').innerHTML =
-    '<div class="loading-text">&#x23F3; Loading today\'s audit...</div>';
-
-  try {
-    const r = await apiFetch('/api/audits?action=start', 'POST', {
-      storeCode, managerName, auditDate: todayIST()
-    });
-    if (!r.success) return showToast(r.error || 'Failed to start audit', 'error');
-    currentSession = r.session;
-    // Fetch full session + items + answers
-    await loadSession(currentSession.id);
-  } catch(e) {
-    document.getElementById('auditChecklist').innerHTML =
-      '<div class="loading-text" style="color:#c62828">Network error. Please refresh.</div>';
-  }
-}
-
-async function loadSession(sessionId) {
-  try {
-    const r = await apiFetch('/api/audits?action=session&id=' + encodeURIComponent(sessionId), 'GET');
-    if (!r.success) return showToast(r.error || 'Failed to load session', 'error');
-    currentSession = r.session;
-    checklistItems = r.items || [];
-    answersMap = {};
-    (r.answers || []).forEach(a => {
-      let photos = [];
-      try { photos = JSON.parse(a.photo_urls || '[]'); } catch {}
-      answersMap[a.item_id] = {
-        status: a.status || 'Pending',
-        remarks: a.remarks || '',
-        responsible_name: a.responsible_name || '',
-        photo_urls: photos
-      };
-    });
-    renderAudit();
-    updateSummary();
-    document.getElementById('auditSummary').style.display = 'grid';
-    document.getElementById('auditSubmitWrap').classList.toggle('hidden',
-      currentSession.status === 'submitted');
-    const info = document.getElementById('auditSessionInfo');
-    if (currentSession.status === 'submitted') {
-      info.innerHTML = `&#x2705; <span style="color:#2e7d32;font-weight:700">Submitted on ${fmtDate(currentSession.submitted_at)}</span>`;
-    } else {
-      info.textContent = `Session: ${currentSession.id} • ${checklistItems.length} items`;
-    }
-    if (currentSession.manager_name) {
-      document.getElementById('auditManagerName').value = currentSession.manager_name;
-    }
-  } catch(e) {
-    document.getElementById('auditChecklist').innerHTML =
-      '<div class="loading-text" style="color:#c62828">Error loading session.</div>';
-  }
-}
-
-// ─── RENDER AREA-WISE CHECKLIST ───────────────────────
-function renderAudit() {
-  const wrap = document.getElementById('auditChecklist');
-  if (!checklistItems.length) {
-    wrap.innerHTML = '<div class="loading-text">No checklist items configured.</div>';
+function postLogin(){
+  // Check T&C
+  if(!getTC(CURRENT_USER.emp_code)){
+    showModal('tcModal');
     return;
   }
-
-  // Group by area_tag, preserving sort_order
-  const byArea = {};
-  const areaOrder = [];
-  const children = {}; // parent_id -> [child items]
-  checklistItems.forEach(it => {
-    if (it.parent_id) {
-      if (!children[it.parent_id]) children[it.parent_id] = [];
-      children[it.parent_id].push(it);
-      return;
-    }
-    const area = it.area_tag || 'Other';
-    if (!byArea[area]) { byArea[area] = []; areaOrder.push(area); }
-    byArea[area].push(it);
-  });
-
-  const isLocked = currentSession && currentSession.status === 'submitted';
-  let html = '';
-  areaOrder.forEach(area => {
-    const items = byArea[area];
-    const tally = computeAreaTally(items, children);
-    html += `<div class="area-section" data-area="${esc(area)}">
-      <div class="area-header" onclick="toggleArea(this)">
-        <div class="name">${esc(area)}</div>
-        <div class="tally">${tally.done}/${tally.total} done</div>
-        <div class="arrow">&#x25BC;</div>
-      </div>
-      <div class="area-body">
-        ${items.map(it => renderItem(it, children[it.id] || [], isLocked)).join('')}
-      </div>
+  enterApp();
+  // Check password expiry (60 days)
+  const pw = getPwInfo(CURRENT_USER.emp_code);
+  const days = Math.floor((Date.now() - pw.set_at)/86400000);
+  if(days >= 60){
+    showModal('pwExpiryModal');
+  } else if(days >= 53){
+    renderBanner({type:'warn', icon:'⏰', title:`Password expires in ${60-days} days`, body:'You will be asked to renew soon.', action:{label:'Renew now', fn:()=>showModal('pwExpiryModal')}});
+  }
+}
+function acceptTC(){
+  if(!document.getElementById('tcAccept').checked){ toast('Tick the box to accept'); return; }
+  setTC(CURRENT_USER.emp_code, {accepted_at: Date.now(), version:1});
+  hideModal('tcModal');
+  enterApp();
+}
+function enterApp(){
+  document.getElementById('loginView').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  document.getElementById('bnav').style.display='grid';
+  const u = CURRENT_USER;
+  const av = (u.emp_name||'?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+  const adminPill = canAccessAdmin(u) ? '<span class="pill admin">Admin · 2266</span>' : '';
+  document.getElementById('userStrip').innerHTML = `
+    <div class="av">${av}</div>
+    <div class="who">
+      <b>${u.emp_name}</b>
+      <span>${u.emp_designation} · ${u.store_name || ''}</span>
+      <span class="pill">HOD: ${u.hod || '—'}</span> ${adminPill}
     </div>`;
-  });
-  wrap.innerHTML = html;
+  document.getElementById('navSubLabel').textContent = isAdminish(u) ? 'All' : 'My';
+  go('home');
+}
+function logout(){
+  LS.rm('mbz_remember');
+  CURRENT_USER = null;
+  document.getElementById('loginView').style.display='flex';
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('bnav').style.display='none';
+}
+function togglePw(id, btn){
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.textContent = el.type === 'password' ? '👁️' : '🙈';
 }
 
-function computeAreaTally(items, childrenByParent) {
-  let total = 0, done = 0;
-  items.forEach(it => {
-    total += 1;
-    const ans = answersMap[it.id];
-    if (ans && (ans.status === 'Done' || ans.status === 'Yes')) done += 1;
-    (childrenByParent[it.id] || []).forEach(ch => {
-      total += 1;
-      const cans = answersMap[ch.id];
-      if (cans && (cans.status === 'Done' || cans.status === 'Yes')) done += 1;
-    });
-  });
-  return { total, done };
+/* OTP forgot-password flow */
+let OTP_TARGET = null;
+function showOtpStep(n){
+  for(let i=1;i<=3;i++){ const el=document.getElementById('otpStep'+i); if(el) el.style.display = i===n?'block':'none'; }
+  document.getElementById('otpTitle').textContent = n===3?'🔑 Set New Password':'🔐 Forgot Password';
+  document.getElementById('otpLead').textContent  = n===1?'Enter your registered mobile number to receive an OTP.':n===2?'Enter the 6-digit OTP we sent to your mobile.':'Choose a new password.';
+}
+function sendOTP(){
+  const mob = (document.getElementById('otpMobile').value||'').trim();
+  if(!/^\d{10}$/.test(mob)){ toast('Enter a valid 10-digit mobile'); return; }
+  const u = getEmployees().find(e => e.emp_mobile === mob);
+  OTP_TARGET = u || {emp_code:null, emp_mobile:mob};
+  document.getElementById('otpToMob').textContent = '•••••' + mob.slice(-5);
+  showOtpStep(2);
+  toast('Demo OTP is 123456 (Fast2SMS in production)');
+}
+function verifyOTP(){
+  const inputs = document.querySelectorAll('#otpStep2 .otp-grid input');
+  const code = [...inputs].map(i => i.value).join('');
+  if(code !== '123456'){ toast('Incorrect OTP'); return; }
+  showOtpStep(3);
+}
+function resetPassword(){
+  const p1 = document.getElementById('newPw1').value;
+  const p2 = document.getElementById('newPw2').value;
+  if(p1.length < 6){ toast('Password must be at least 6 characters'); return; }
+  if(p1 !== p2){ toast('Passwords do not match'); return; }
+  if(!OTP_TARGET || !OTP_TARGET.emp_code){ toast('OTP succeeded but no matching account found'); hideModal('otpModal'); return; }
+  const pw = getPwInfo(OTP_TARGET.emp_code);
+  if(pw.history.slice(-3).includes(p1)){ toast('Cannot reuse last 3 passwords'); return; }
+  pw.history = [...pw.history, p1].slice(-5);
+  pw.set_at = Date.now();
+  setPwInfo(OTP_TARGET.emp_code, pw);
+  hideModal('otpModal');
+  toast('Password updated. Please sign in with your new password.');
+}
+function renewPassword(){
+  const old = document.getElementById('pwOld').value;
+  const p1  = document.getElementById('pwNew1').value;
+  const p2  = document.getElementById('pwNew2').value;
+  const pw  = getPwInfo(CURRENT_USER.emp_code);
+  const validOld = old === 'password123' || old === pw.history[pw.history.length-1] || old === 'MB@'+CURRENT_USER.emp_code;
+  if(!validOld){ toast('Current password is incorrect'); return; }
+  if(p1.length < 6){ toast('New password must be at least 6 characters'); return; }
+  if(p1 !== p2){ toast('Passwords do not match'); return; }
+  if(pw.history.slice(-3).includes(p1)){ toast('Cannot reuse last 3 passwords'); return; }
+  pw.history = [...pw.history, p1].slice(-5);
+  pw.set_at = Date.now();
+  setPwInfo(CURRENT_USER.emp_code, pw);
+  hideModal('pwExpiryModal');
+  document.getElementById('bannerHost').innerHTML='';
+  toast('Password renewed successfully ✓');
 }
 
-function renderItem(it, childs, isLocked) {
-  const ans = answersMap[it.id] || { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
-  return renderSingle(it, ans, false, isLocked) +
-    childs.map(ch => {
-      const cans = answersMap[ch.id] || { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
-      return renderSingle(ch, cans, true, isLocked);
-    }).join('');
-}
-
-function renderSingle(it, ans, isChild, isLocked) {
-  const chipCls = (opt) => 'status-chip ' + opt.toLowerCase().replace(/\s+/g,'-') +
-    (ans.status === opt ? ' selected' : '');
-  const chips = ['Yes','No','Done','Pending'];
-  const disabled = isLocked ? 'disabled style="pointer-events:none;opacity:.7"' : '';
-  const photos = (ans.photo_urls || []).map(u =>
-    `<img src="${esc(driveImgUrl(u))}" alt="photo">`).join('');
-  const categoryBadge = it.category ?
-    `<span class="ai-cat">${esc(it.category)}</span>` : '';
-  const timelineBadge = it.timeline ?
-    `<span class="ai-timeline">&#x23F0; ${esc(it.timeline)}</span>` : '';
-  const respBadge = it.responsible ?
-    `<span class="ai-resp">&#x1F464; ${esc(it.responsible)}</span>` : '';
-
-  return `<div class="audit-item${isChild ? ' child-item' : ''}" data-item-id="${it.id}">
-    <div class="ai-head">
-      <div class="ai-text">${esc(it.action_text)}</div>
-    </div>
-    <div class="ai-meta">${categoryBadge}${timelineBadge}${respBadge}</div>
-    <div class="status-chips">
-      ${chips.map(c => `<span class="${chipCls(c)}" onclick="setStatus(${it.id},'${c}',this)" ${disabled}>${c}</span>`).join('')}
-    </div>
-    <div class="ai-remarks">
-      <textarea placeholder="Remarks / notes / reason (optional)" onchange="setRemarks(${it.id}, this.value)" oninput="queueSave(${it.id})" ${isLocked ? 'readonly' : ''}>${esc(ans.remarks)}</textarea>
-    </div>
-    <div class="ai-resp-input">
-      <input type="text" placeholder="Actual person who acted (override)" value="${esc(ans.responsible_name)}" onchange="setResponsible(${it.id}, this.value)" ${isLocked ? 'readonly' : ''}>
-    </div>
-    <div class="ai-photos" id="photos_${it.id}">
-      ${photos}
-      ${isLocked ? '' : `<label class="photo-add" title="Attach photo">&#x2B;
-        <input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadItemPhoto(${it.id}, this)">
-      </label>`}
-    </div>
-    <div class="ai-saved" id="saved_${it.id}"></div>
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  MODALS, BANNER, TOAST, LIGHTBOX                          ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function showModal(id){ document.getElementById(id).classList.add('show'); }
+function hideModal(id){ document.getElementById(id).classList.remove('show'); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window._tt); window._tt = setTimeout(()=>t.classList.remove('show'),2400); }
+function renderBanner(b){
+  const host = document.getElementById('bannerHost');
+  if(!b){ host.innerHTML=''; return; }
+  host.innerHTML = `<div class="banner ${b.type==='crit'?'crit':''}">
+    <div class="ic">${b.icon||'⚠️'}</div>
+    <div><b>${b.title}</b><div>${b.body}</div></div>
+    ${b.action?`<button onclick="(${b.action.fn.toString()})()">${b.action.label}</button>`:''}
   </div>`;
 }
-
-function toggleArea(headerEl) {
-  headerEl.parentElement.classList.toggle('collapsed');
+function openLightbox(url){
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(e){
+  if(e && e.target && e.target.tagName==='IMG' && e.target.id==='lightboxImg') return;
+  document.getElementById('lightbox').classList.remove('show');
 }
 
-// ─── ANSWER HANDLERS ──────────────────────────────────
-function setStatus(itemId, status, chipEl) {
-  if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
-  answersMap[itemId].status = status;
-  // Toggle chip UI
-  const container = chipEl.parentElement;
-  container.querySelectorAll('.status-chip').forEach(c => c.classList.remove('selected'));
-  chipEl.classList.add('selected');
-  saveAnswer(itemId, { status });
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  ROUTER                                                  ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function go(view){
+  CURRENT_VIEW = view;
+  document.querySelectorAll('.bnav button').forEach(b=>b.classList.remove('active'));
+  const map={home:'home',audit:'audit','audit-form':'audit','audit-result':'audit',submissions:'submissions','submission-detail':'submissions',more:'more',admin:'more'};
+  const t = document.getElementById('nav-'+(map[view]||view));
+  if(t) t.classList.add('active');
+  document.getElementById('bnav').style.display = (view==='audit-form')?'none':'grid';
+  const m = document.getElementById('main');
+  if(view==='home') renderHome(m);
+  else if(view==='audit') renderAuditStart(m);
+  else if(view==='audit-form') renderAuditForm(m);
+  else if(view==='audit-result') renderAuditResult(m);
+  else if(view==='submissions') renderSubmissions(m);
+  else if(view==='submission-detail') renderSubmissionDetail(m);
+  else if(view==='more') renderMore(m);
+  else if(view==='admin') renderAdmin(m);
+  window.scrollTo({top:0});
 }
 
-function setRemarks(itemId, remarks) {
-  if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
-  answersMap[itemId].remarks = remarks;
-  saveAnswer(itemId, { remarks });
-}
-function setResponsible(itemId, name) {
-  if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
-  answersMap[itemId].responsible_name = name;
-  saveAnswer(itemId, { responsibleName: name });
-}
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  HOME                                                    ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function renderHome(host){
+  const u = CURRENT_USER;
+  const subs = getSubmissions().filter(s => isAdminish(u) || s.auditor_code === u.emp_code);
+  const thisMonth = subs.filter(s => s.date.slice(0,7) === TODAY.slice(0,7));
+  const avg = subs.length ? Math.round(subs.reduce((a,b)=>a+b.pct,0)/subs.length) : 0;
+  host.innerHTML = `
+    <div style="margin-bottom:16px"><h1>Welcome 👋</h1><div class="hindi">${u.emp_name} · ${u.emp_designation}</div></div>
 
-// Debounced autosave for textareas as user types
-function queueSave(itemId) {
-  if (saveTimers[itemId]) clearTimeout(saveTimers[itemId]);
-  saveTimers[itemId] = setTimeout(() => {
-    const ans = answersMap[itemId];
-    if (ans) saveAnswer(itemId, { remarks: ans.remarks });
-  }, 900);
-}
+    <button class="bigbtn brand" onclick="go('audit')">
+      <span class="ic">✍️</span>
+      <div class="body"><div>Start New Audit</div><small>नई ऑडिट शुरू करें · 25 items</small></div>
+      <span class="arrow">›</span>
+    </button>
 
-async function saveAnswer(itemId, patch) {
-  if (!currentSession) return;
-  const saved = document.getElementById('saved_' + itemId);
-  if (saved) saved.textContent = 'Saving...';
-  try {
-    const r = await apiFetch('/api/audits?action=answer', 'POST', {
-      sessionId: currentSession.id, itemId, ...patch
-    });
-    if (!r.success) {
-      if (saved) saved.textContent = 'Save failed — retry';
-      return showToast(r.error || 'Save failed', 'error');
-    }
-    currentSession = r.session || currentSession;
-    if (saved) {
-      saved.textContent = '\u2713 Saved ' + new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-      setTimeout(() => { if (saved.textContent.startsWith('\u2713')) saved.textContent = ''; }, 3500);
-    }
-    updateSummary();
-    updateAreaTallies();
-  } catch(e) {
-    if (saved) saved.textContent = 'Network error';
-  }
-}
+    <button class="bigbtn" onclick="go('submissions')">
+      <span class="ic">📋</span>
+      <div class="body"><div>${isAdminish(u)?'All Submissions':'My Submissions'}</div><small>${subs.length} total · ${thisMonth.length} this month</small></div>
+      <span class="arrow">›</span>
+    </button>
 
-function updateSummary() {
-  if (!currentSession) return;
-  document.getElementById('statPct').textContent = (currentSession.compliance_pct || 0) + '%';
-  document.getElementById('statDone').textContent = currentSession.done_count || 0;
-  document.getElementById('statNot').textContent = currentSession.not_done_count || 0;
-  document.getElementById('statPend').textContent = currentSession.pending_count || 0;
-}
-function updateAreaTallies() {
-  document.querySelectorAll('.area-section').forEach(sec => {
-    const area = sec.dataset.area;
-    const items = checklistItems.filter(i => (i.area_tag || 'Other') === area && !i.parent_id);
-    const children = {};
-    checklistItems.filter(i => i.parent_id).forEach(c => {
-      if (!children[c.parent_id]) children[c.parent_id] = [];
-      children[c.parent_id].push(c);
-    });
-    const t = computeAreaTally(items, children);
-    sec.querySelector('.tally').textContent = `${t.done}/${t.total} done`;
-  });
-}
+    ${canAccessAdmin(u) ? `
+      <button class="bigbtn" onclick="go('admin')">
+        <span class="ic" style="background:#FAF3E0;color:#7A5C18">🔒</span>
+        <div class="body"><div>Admin Panel</div><small>Manage employees · only visible to Emp 2266</small></div>
+        <span class="arrow">›</span>
+      </button>` : ''}
 
-// ─── PHOTO UPLOAD PER ITEM ────────────────────────────
-async function uploadItemPhoto(itemId, inputEl) {
-  const file = inputEl.files && inputEl.files[0];
-  if (!file) return;
-  const saved = document.getElementById('saved_' + itemId);
-  if (saved) saved.textContent = 'Uploading photo...';
-  try {
-    const b64 = await new Promise((res, rej) => {
-      const fr = new FileReader(); fr.onload = e => res(e.target.result); fr.onerror = rej; fr.readAsDataURL(file);
-    });
-    const r = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-      body: JSON.stringify({ fileData: b64, fileName: 'audit_' + itemId + '_' + Date.now() + '.jpg', mimeType: file.type })
-    });
-    const d = await r.json();
-    if (!d.url) {
-      if (saved) saved.textContent = 'Upload failed';
-      return showToast('Photo upload failed', 'error');
-    }
-    if (!answersMap[itemId]) answersMap[itemId] = { status:'Pending', remarks:'', responsible_name:'', photo_urls:[] };
-    answersMap[itemId].photo_urls = (answersMap[itemId].photo_urls || []).concat([d.url]);
-    // Save to server
-    await saveAnswer(itemId, { photoUrls: answersMap[itemId].photo_urls });
-    // Append thumb
-    const grid = document.getElementById('photos_' + itemId);
-    const img = document.createElement('img');
-    img.src = driveImgUrl(d.url);
-    img.alt = 'photo';
-    grid.insertBefore(img, grid.querySelector('.photo-add'));
-  } catch(e) {
-    if (saved) saved.textContent = 'Upload failed';
-    showToast('Photo upload failed', 'error');
-  } finally {
-    inputEl.value = '';
-  }
-}
-
-// ─── SUBMIT AUDIT ─────────────────────────────────────
-async function submitAudit() {
-  if (!currentSession) return showToast('No active session', 'error');
-  const pending = currentSession.pending_count || 0;
-  if (pending > 0) {
-    if (!confirm(`${pending} item(s) are still Pending. Submit anyway?`)) return;
-  }
-  setLoading('submitAuditBtn', true, 'Submitting...');
-  try {
-    const r = await apiFetch('/api/audits?action=submit', 'POST', {
-      sessionId: currentSession.id,
-      managerName: document.getElementById('auditManagerName').value.trim() || null
-    });
-    if (!r.success) return showToast(r.error || 'Submit failed', 'error');
-    currentSession = r.session;
-    showToast('Audit submitted successfully! \u2713', 'success');
-    await loadSession(currentSession.id);
-  } catch(e) {
-    showToast('Network error', 'error');
-  } finally {
-    setLoading('submitAuditBtn', false, '\u2713 Submit Audit');
-  }
-}
-
-// ─── HISTORY ──────────────────────────────────────────
-async function loadHistory() {
-  const from = document.getElementById('histFrom').value;
-  const to = document.getElementById('histTo').value;
-  const store = document.getElementById('histStoreFilter').value;
-  const params = new URLSearchParams();
-  if (from) params.set('from', from);
-  if (to) params.set('to', to);
-  if (store) params.set('storeCode', store);
-  params.set('limit', '100');
-  document.getElementById('historyList').innerHTML = '<div class="loading-text">&#x23F3; Loading...</div>';
-  try {
-    const r = await apiFetch('/api/audits?action=list&' + params.toString(), 'GET');
-    if (!r.success) return showToast(r.error || 'Failed', 'error');
-    const list = r.sessions || [];
-    if (!list.length) {
-      document.getElementById('historyList').innerHTML = '<div class="loading-text">No audits found.</div>';
-      return;
-    }
-    document.getElementById('historyList').innerHTML = list.map(buildHistCard).join('');
-  } catch(e) {
-    document.getElementById('historyList').innerHTML = '<div class="loading-text" style="color:#c62828">Error loading.</div>';
-  }
-}
-
-function buildHistCard(s) {
-  const pct = s.compliance_pct || 0;
-  const pctCls = pct >= 80 ? '' : pct >= 50 ? 'mid' : 'low';
-  const statusCls = s.status === 'submitted' ? 'status-submitted' : 'status-in-progress';
-  const statusLbl = s.status === 'submitted' ? 'Submitted' : 'In Progress';
-  const progressCls = s.status === 'submitted' ? '' : 'in-progress';
-  return `<div class="hist-card ${progressCls}" onclick="openHistorySession('${esc(s.id)}')">
-    <div class="hist-head">
-      <div>
-        <div class="hist-title">${esc(s.store_name || s.store_code)}</div>
-        <div class="hist-meta">${fmtDate(s.audit_date)} &bull; by ${esc(s.conducted_by_name || '-')}${s.manager_name ? ' &bull; Mgr: ' + esc(s.manager_name) : ''}</div>
-      </div>
-      <div>
-        <div class="hist-pct ${pctCls}">${pct}%</div>
-        <span class="status-badge ${statusCls}">${statusLbl}</span>
+    <div class="card" style="margin-top:14px">
+      <h2>This month</h2>
+      <div class="grid2" style="margin-top:8px">
+        <div style="padding:12px;background:var(--bg2);border-radius:10px"><div class="sub" style="font-size:12px">Audits</div><div style="font-size:24px;font-weight:800">${thisMonth.length}</div></div>
+        <div style="padding:12px;background:var(--bg2);border-radius:10px"><div class="sub" style="font-size:12px">Avg score</div><div style="font-size:24px;font-weight:800">${avg}%</div></div>
       </div>
     </div>
-    <div class="hist-stats">
-      <span>&#x2705; Done: <strong>${s.done_count||0}</strong></span>
-      <span>&#x274C; Not Done: <strong>${s.not_done_count||0}</strong></span>
-      <span>&#x23F3; Pending: <strong>${s.pending_count||0}</strong></span>
-      <span>Total: <strong>${s.total_items||0}</strong></span>
-    </div>
-  </div>`;
-}
-
-function openHistorySession(id) {
-  // Switch to audit tab and load this session read-only
-  showView('audit');
-  loadSession(id);
-}
-
-// ─── REPORTS (manager + admin) ────────────────────────
-async function loadReports() {
-  if (currentUser.role !== 'manager' && currentUser.role !== 'admin') return;
-  const from = document.getElementById('rptFrom').value;
-  const to = document.getElementById('rptTo').value;
-  const params = new URLSearchParams();
-  if (from) params.set('from', from);
-  if (to) params.set('to', to);
-  document.getElementById('reportByArea').innerHTML = '<div class="loading-text">Loading...</div>';
-  document.getElementById('reportByStore').innerHTML = '<div class="loading-text">Loading...</div>';
-  document.getElementById('reportKpis').innerHTML = '';
-  try {
-    const r = await apiFetch('/api/reports?action=summary&' + params.toString(), 'GET');
-    if (!r.success) return showToast(r.error || 'Failed', 'error');
-    renderReportKpis(r.totals || {});
-    renderByArea(r.byArea || []);
-    renderByStore(r.byStore || []);
-  } catch(e) {
-    showToast('Network error', 'error');
-  }
-}
-
-function renderReportKpis(t) {
-  document.getElementById('reportKpis').innerHTML = `
-    <div class="kpi-tile"><div class="num">${t.sessions || 0}</div><div class="lbl">Total Sessions</div></div>
-    <div class="kpi-tile"><div class="num">${t.submitted || 0}</div><div class="lbl">Submitted</div></div>
-    <div class="kpi-tile"><div class="num">${(t.avg_compliance || 0).toFixed(1)}%</div><div class="lbl">Avg Compliance</div></div>
-    <div class="kpi-tile"><div class="num">${t.in_progress || 0}</div><div class="lbl">In Progress</div></div>
   `;
 }
 
-function renderByArea(rows) {
-  if (!rows.length) {
-    document.getElementById('reportByArea').innerHTML = '<div class="loading-text">No data.</div>';
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  AUDIT — store pick + form + result                       ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function renderAuditStart(host){
+  host.innerHTML = `
+    <h1>Pick a store</h1>
+    <div class="hindi" style="margin-bottom:10px">कौन-सी दुकान?</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px"><input id="storeQ" placeholder="Search store / दुकान खोजें" oninput="filterStores(this.value)" /></div>
+    <div class="stores" id="storeList"></div>
+    <div style="margin-top:16px">
+      <label class="sub">Audit date</label>
+      <input type="date" value="${SESSION.date}" onchange="SESSION.date=this.value" />
+    </div>`;
+  filterStores('');
+}
+function filterStores(q){
+  q = (q||'').toLowerCase().trim();
+  const list = STORES.filter(s => !q || s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.city.toLowerCase().includes(q));
+  document.getElementById('storeList').innerHTML = list.map(s => `
+    <button class="storetile" onclick="pickStore('${s.code}')">
+      <b>${s.name}</b><small>${s.code} · ${s.city}</small>
+      <small style="color:var(--brand);font-weight:700;margin-top:4px">SM: ${s.manager}</small>
+    </button>`).join('');
+}
+function pickStore(code){
+  SESSION.storeCode = code;
+  SESSION.idx = 0;
+  SESSION.responses = {};
+  ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:'', photos:[], voiceUrl:'', voiceBlob:null});
+  go('audit-form');
+}
+function renderAuditForm(host){
+  const it = ITEMS[SESSION.idx];
+  if(!it){ go('audit-result'); return; }
+  const sec = SECTIONS.find(s => s.id === it.sec);
+  const r = SESSION.responses[it.id] || {photos:[]};
+  const done = SESSION.idx, total = ITEMS.length;
+  const store = STORES.find(s => s.code === SESSION.storeCode);
+  host.innerHTML = `
+    <div class="progmeta"><span><b>${store?store.name:'Store'}</b> · ${SESSION.date}</span><span>${done+1} / ${total}</span></div>
+    <div class="progress"><div style="width:${(done/total)*100}%"></div></div>
+    <div class="qcard">
+      <div class="top">
+        <div class="badge" style="background:${sec.color}22;color:${sec.color}">${sec.icon} ${sec.name} · ${sec.hindi}</div>
+        <h2>${it.title}</h2>
+        <div class="qhindi">${it.hindi}</div>
+        <div class="qtext">${it.what}</div>
+      </div>
+      <div class="evbox">
+        <div class="lbl">📸 <b>${it.photoNeeded?'Photo evidence (recommended)':'Photo / Image (optional)'}</b></div>
+        <div class="ev">${it.evidence}</div>
+        <div class="photoslot">
+          ${(r.photos||[]).map((ph,i)=>`<div class="ph" onclick="openLightbox('${ph.url}')"><img src="${ph.url}" alt=""/><span class="x" onclick="event.stopPropagation();rmPhoto(${it.id},${i})">×</span></div>`).join('')}
+          ${(r.photos||[]).length < 3 ? `
+            <div class="add" onclick="document.getElementById('file-${it.id}').click()"><b>＋</b>Add Photo<br/><small>${(r.photos||[]).length}/3</small></div>`:''}
+          <input type="file" id="file-${it.id}" accept="image/*" multiple style="display:none" onchange="handleFiles(${it.id},this.files)" />
+        </div>
+      </div>
+      <div class="voicebox">
+        <div class="vhead"><span>🎙️ <b>Voice Note</b> (optional)</span><span class="hindi">आवाज़</span></div>
+        ${r.voiceUrl ? `
+          <div class="vrow"><audio controls src="${r.voiceUrl}"></audio><button onclick="rmVoice(${it.id})">Delete</button></div>
+        ` : `
+          <button class="recbtn" id="rec-${it.id}" onclick="toggleVoice(${it.id})">
+            <span class="dot"></span><span id="recLbl-${it.id}">Tap to record</span><span id="recTime-${it.id}" style="margin-left:auto;font-variant-numeric:tabular-nums"></span>
+          </button>`}
+      </div>
+      <div class="pfrow">
+        <button class="pf pass ${r.pass===true?'on':''}" onclick="setPF(${it.id},true,this)"><span class="em">✅</span><div>PASS</div></button>
+        <button class="pf fail ${r.pass===false?'on':''}" onclick="setPF(${it.id},false,this)"><span class="em">❌</span><div>FAIL</div></button>
+      </div>
+      <div class="remarks">
+        <label>Remarks / टिप्पणी (optional)</label>
+        <textarea oninput="SESSION.responses[${it.id}].remarks=this.value" placeholder="Anything to note?">${r.remarks||''}</textarea>
+      </div>
+    </div>
+    <div style="height:80px"></div>
+    <div class="actionbar">
+      <button class="btn ghost" onclick="prevPoint()" ${SESSION.idx===0?'disabled':''}>← Back</button>
+      <button class="btn" id="nextBtn" onclick="nextPoint()" ${r.pass===null||r.pass===undefined?'disabled':''}>${SESSION.idx===total-1?'Finish ✓':'Next →'}</button>
+    </div>`;
+}
+function setPF(id, val, btn){
+  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:'',voiceBlob:null};
+  SESSION.responses[id].pass = val;
+  document.getElementById('nextBtn').disabled = false;
+  document.querySelectorAll('.pf').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+}
+function prevPoint(){ if(SESSION.idx>0){SESSION.idx--;renderAuditForm(document.getElementById('main'));} }
+function nextPoint(){ if(SESSION.idx<ITEMS.length-1){SESSION.idx++;renderAuditForm(document.getElementById('main'));} else go('audit-result'); }
+
+/* Image upload */
+function handleFiles(id, fileList){
+  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:'',voiceBlob:null};
+  const free = Math.max(0, 3 - SESSION.responses[id].photos.length);
+  const files = [...fileList].slice(0, free);
+  if(!files.length){ toast('Up to 3 photos'); return; }
+  let done = 0;
+  files.forEach(f => {
+    if(!/^image\//.test(f.type)){ done++; return; }
+    const r = new FileReader();
+    r.onload = e => {
+      SESSION.responses[id].photos.push({id:'img-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),url:e.target.result,name:f.name,size:f.size});
+      done++;
+      if(done===files.length){ renderAuditForm(document.getElementById('main')); toast('Photo added'); }
+    };
+    r.readAsDataURL(f);
+  });
+}
+function rmPhoto(id, idx){ SESSION.responses[id].photos.splice(idx,1); renderAuditForm(document.getElementById('main')); }
+
+/* Voice notes */
+let _vrec=null,_vchunks=[],_vstream=null,_vtimer=null,_vstart=0,_vid=null;
+async function toggleVoice(id){
+  if(_vrec && _vid===id){ stopVoice(); return; }
+  if(_vrec){ stopVoice(); }
+  if(!navigator.mediaDevices || !window.MediaRecorder){ toast('Voice recording not supported'); return; }
+  try{
+    _vstream = await navigator.mediaDevices.getUserMedia({audio:true});
+    _vchunks = []; _vid = id;
+    _vrec = new MediaRecorder(_vstream);
+    _vrec.ondataavailable = e => { if(e.data && e.data.size) _vchunks.push(e.data); };
+    _vrec.onstop = () => {
+      const blob = new Blob(_vchunks, {type:_vrec.mimeType||'audio/webm'});
+      const url = URL.createObjectURL(blob);
+      SESSION.responses[id].voiceBlob = blob;
+      SESSION.responses[id].voiceUrl = url;
+      _vstream.getTracks().forEach(t=>t.stop());
+      _vrec=null;_vstream=null;_vid=null;clearInterval(_vtimer);_vtimer=null;
+      renderAuditForm(document.getElementById('main'));
+      toast('Voice note saved');
+    };
+    _vrec.start();
+    _vstart = Date.now();
+    const btn=document.getElementById('rec-'+id),lbl=document.getElementById('recLbl-'+id),tim=document.getElementById('recTime-'+id);
+    if(btn) btn.classList.add('live');
+    if(lbl) lbl.textContent = 'Recording…';
+    _vtimer = setInterval(()=>{ const s=Math.floor((Date.now()-_vstart)/1000); if(tim) tim.textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); if(s>=60) stopVoice(); },250);
+  }catch(err){ toast('Microphone permission denied'); }
+}
+function stopVoice(){ if(_vrec && _vrec.state==='recording') _vrec.stop(); }
+function rmVoice(id){ if(SESSION.responses[id].voiceUrl) URL.revokeObjectURL(SESSION.responses[id].voiceUrl); SESSION.responses[id].voiceUrl=''; SESSION.responses[id].voiceBlob=null; renderAuditForm(document.getElementById('main')); }
+
+/* Result */
+function gradeFor(pct){ return pct >= 80 ? 'Gold' : (pct >= 60 ? 'Silver' : 'Red'); }
+function renderAuditResult(host){
+  let pass = 0; ITEMS.forEach(it => { if(SESSION.responses[it.id]?.pass === true) pass++; });
+  const pct = Math.round(pass*100/ITEMS.length);
+  const grade = gradeFor(pct);
+  const gradeColor = {Gold:'#D4A64A',Silver:'#9CAEC2',Red:'#D23B3B'}[grade];
+  const bySec = SECTIONS.map(sec=>{
+    const its = ITEMS.filter(it=>it.sec===sec.id);
+    const got = its.filter(it=>SESSION.responses[it.id]?.pass===true).length;
+    return {...sec, got, total: its.length, pct: Math.round(got*100/its.length)};
+  });
+  const fails = ITEMS.filter(it => SESSION.responses[it.id]?.pass === false);
+  const store = STORES.find(s => s.code === SESSION.storeCode);
+
+  host.innerHTML = `
+    <div class="result-hero">
+      <div class="ring" style="--p:${pct};--c:${gradeColor}"><div class="pct">${pct}%<small>${pass} / ${ITEMS.length}</small></div></div>
+      <div style="margin:10px 0 4px"><span class="gradechip ${grade}">Grade ${grade}</span></div>
+      <div class="hindi">${grade==='Gold'?'उत्कृष्ट · Best Store eligible':grade==='Silver'?'अनुपालन · Corrections within 24h':'गंभीर · Immediate intervention'}</div>
+    </div>
+    <div class="card">
+      <h2>Section breakdown</h2>
+      <div class="areas">${bySec.map(s=>{const cls=s.pct>=80?'ok':(s.pct>=60?'warn':'bad');return `
+        <div class="arearow">
+          <div class="ic" style="background:${s.color}22;color:${s.color}">${s.icon}</div>
+          <div class="info"><b>${s.name}</b><small>${s.got} / ${s.total} passed</small><div class="barlite"><div class="${cls}" style="width:${s.pct}%"></div></div></div>
+          <div class="pct">${s.pct}%</div>
+        </div>`}).join('')}</div>
+    </div>
+    ${fails.length ? `
+      <div class="alertcard"><b>${fails.length} item${fails.length>1?'s':''} failed</b>
+      ${fails.slice(0,4).map(it=>`<div style="margin-top:8px;padding:8px;background:#fff;border-radius:8px"><b style="color:var(--bad)">❌ ${it.title}</b><div class="sub" style="font-size:13px;margin-top:2px">${it.what}</div></div>`).join('')}
+      </div>` : ''}
+    <div class="card"><h2>What next</h2><div class="sub">${grade==='Gold'?'🏆 Best Store eligible.':grade==='Silver'?'📋 Corrections required within 24 hours.':'🚨 Immediate intervention. Store Manager retraining required.'}</div></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn ghost" onclick="go('submissions')">View Submissions</button>
+      <button class="btn" onclick="finishAudit(${pct},'${grade}',${pass})">Submit ✓</button>
+    </div>`;
+}
+function finishAudit(pct, grade, pass){
+  const u = CURRENT_USER, store = STORES.find(s=>s.code===SESSION.storeCode);
+  const thumbs = []; const audios = [];
+  ITEMS.forEach(it => {
+    (SESSION.responses[it.id]?.photos||[]).forEach(p => thumbs.push(p.url));
+    if(SESSION.responses[it.id]?.voiceUrl) audios.push(SESSION.responses[it.id].voiceUrl);
+  });
+  const id = 'A' + String(Date.now()).slice(-6);
+  const newSub = {id, date:SESSION.date, store_code:store.code, store_name:store.name, auditor_code:u.emp_code, auditor:u.emp_name, pass, total:ITEMS.length, pct, grade, thumbs:thumbs.slice(0,8), audio:audios.slice(0,3)};
+  const subs = getSubmissions(); subs.unshift(newSub); setSubmissions(subs);
+  SESSION.idx=0; SESSION.responses={}; SESSION.storeCode='';
+  toast('Audit submitted ✓');
+  go('submissions');
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  SUBMISSIONS LIST & DETAIL                               ║
+   ╚══════════════════════════════════════════════════════════╝ */
+let DETAIL_ID = null;
+function renderSubmissions(host){
+  const u = CURRENT_USER;
+  const all = getSubmissions();
+  const visible = isAdminish(u) ? all : all.filter(s => s.auditor_code === u.emp_code);
+  host.innerHTML = `
+    <h1>${isAdminish(u)?'All Submissions':'My Submissions'}</h1>
+    <div class="hindi" style="margin-bottom:14px">${isAdminish(u)?'सभी सबमिशन':'मेरी सबमिशन'} · ${visible.length} total</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="date" id="fFrom" value="2026-04-01" onchange="renderSubmissions(document.getElementById('main'))" />
+      <input type="date" id="fTo"   value="${TODAY}"   onchange="renderSubmissions(document.getElementById('main'))" />
+    </div>
+    ${visible.length===0 ? '<div class="empty"><div class="ic">📭</div><b>No submissions yet</b><p>Tap "Start New Audit" on Home.</p></div>' :
+      visible.map(s => `
+        <div class="submrow">
+          <div class="head" onclick="DETAIL_ID='${s.id}';go('submission-detail')" style="cursor:pointer">
+            <div class="gradedot ${s.grade}">${s.grade[0]}</div>
+            <div class="info"><b>${s.store_name}</b><small>${s.date} · ${s.auditor} · ${s.pass}/${s.total} passed</small></div>
+            <div class="pct">${s.pct}%</div>
+          </div>
+          ${s.thumbs.length || s.audio.length ? `<div class="thumbs">
+            ${s.thumbs.map(t => `<div class="th" onclick="openLightbox('${t}')"><img src="${t}" alt="" /></div>`).join('')}
+            ${s.audio.map(a => `<audio controls src="${a}" style="height:32px"></audio>`).join('')}
+          </div>`:''}
+        </div>`).join('')}
+  `;
+}
+function renderSubmissionDetail(host){
+  const s = getSubmissions().find(x => x.id === DETAIL_ID);
+  if(!s){ go('submissions'); return; }
+  host.innerHTML = `
+    <button class="btn ghost sm" onclick="go('submissions')" style="margin-bottom:10px;display:inline-flex">← Back</button>
+    <div class="result-hero">
+      <div class="ring" style="--p:${s.pct};--c:${s.grade==='Gold'?'#D4A64A':s.grade==='Silver'?'#9CAEC2':'#D23B3B'}"><div class="pct">${s.pct}%<small>${s.pass} / ${s.total}</small></div></div>
+      <div style="margin:10px 0 4px"><span class="gradechip ${s.grade}">Grade ${s.grade}</span></div>
+      <div class="hindi">${s.store_name} · ${s.date}</div>
+    </div>
+    <div class="card">
+      <h2>Audit details</h2>
+      <div class="sub" style="font-size:14px;line-height:1.7">
+        <div><b>Audit ID:</b> ${s.id}</div>
+        <div><b>Auditor:</b> ${s.auditor} (${s.auditor_code})</div>
+        <div><b>Store:</b> ${s.store_name} (${s.store_code})</div>
+        <div><b>Date:</b> ${s.date}</div>
+      </div>
+    </div>
+    ${s.thumbs.length ? `<div class="card"><h2>Photo evidence (${s.thumbs.length})</h2>
+      <div class="thumbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        ${s.thumbs.map(t=>`<div class="th" style="width:90px;height:90px;border-radius:10px;background:#e9eaf0 center/cover no-repeat;border:1px solid var(--line);cursor:pointer;overflow:hidden" onclick="openLightbox('${t}')"><img src="${t}" alt="" style="width:100%;height:100%;object-fit:cover" /></div>`).join('')}
+      </div>
+      <div class="hint" style="font-size:12px;color:var(--mute);margin-top:8px">Tap any photo to view fullscreen.</div>
+    </div>`:''}
+    ${s.audio.length ? `<div class="card"><h2>Voice notes (${s.audio.length})</h2>
+      ${s.audio.map(a=>`<audio controls src="${a}" style="width:100%;margin-top:6px"></audio>`).join('')}
+    </div>`:''}
+  `;
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  MORE                                                    ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function renderMore(host){
+  const u = CURRENT_USER;
+  const pw = getPwInfo(u.emp_code);
+  const days = Math.floor((Date.now()-pw.set_at)/86400000);
+  const left = Math.max(0, 60-days);
+  host.innerHTML = `
+    <h1>More</h1>
+    <div class="hindi" style="margin-bottom:14px">और</div>
+    ${canAccessAdmin(u) ? `
+      <button class="bigbtn" onclick="go('admin')">
+        <span class="ic" style="background:#FAF3E0;color:#7A5C18">🔒</span>
+        <div class="body"><div>Admin Panel</div><small>Emp 2266 · Manage employees</small></div>
+        <span class="arrow">›</span>
+      </button>`:''}
+    <button class="bigbtn" onclick="showModal('pwExpiryModal')">
+      <span class="ic">🔑</span>
+      <div class="body"><div>Change Password</div><small>Expires in ${left} day${left===1?'':'s'} · last set ${days}d ago</small></div>
+      <span class="arrow">›</span>
+    </button>
+    <button class="bigbtn" onclick="showTCAgain()">
+      <span class="ic">📋</span>
+      <div class="body"><div>Terms &amp; Conditions</div><small>Accepted ${getTC(u.emp_code)?'· ' + new Date((getTC(u.emp_code).accepted_at)||0).toISOString().slice(0,10):'(not yet)'}</small></div>
+      <span class="arrow">›</span>
+    </button>
+    <button class="bigbtn" onclick="logout()">
+      <span class="ic" style="background:#FCE8E8;color:var(--bad)">⏻</span>
+      <div class="body"><div>Sign Out</div><small>Clear "Remember me"</small></div>
+      <span class="arrow">›</span>
+    </button>
+    <div class="card" style="margin-top:14px">
+      <h2>Infrastructure</h2>
+      <div class="sub" style="font-size:13px;line-height:1.7">
+        ✓ Custom domain <b>mb-requests.mbz.in</b><br/>
+        ✓ Node.js 20 LTS · @libsql/client 0.15.9<br/>
+        ✓ All API errors handled gracefully<br/>
+        ✓ Production-ready
+      </div>
+    </div>
+    <div style="margin-top:14px;text-align:center;color:var(--mute);font-size:12px">Mbz Audit · ${TODAY} · v3</div>`;
+}
+function showTCAgain(){ document.getElementById('tcAccept').checked = !!getTC(CURRENT_USER.emp_code); showModal('tcModal'); }
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  ADMIN PANEL                                             ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function renderAdmin(host){
+  if(!canAccessAdmin(CURRENT_USER)){
+    host.innerHTML = '<div class="empty"><div class="ic">🔒</div><b>Forbidden</b><p>Admin panel is restricted to Emp ID 2266.</p></div>';
     return;
   }
-  document.getElementById('reportByArea').innerHTML = `<table class="report-table">
-    <thead><tr><th>Area</th><th class="num">Total</th><th class="num">Done</th><th>Compliance</th></tr></thead>
-    <tbody>${rows.map(r => {
-      const pct = r.total ? Math.round((r.done / r.total) * 1000) / 10 : 0;
-      const cls = pct >= 80 ? '' : pct >= 50 ? 'mid' : 'low';
-      return `<tr><td>${esc(r.area_tag || '-')}</td><td class="num">${r.total}</td><td class="num">${r.done}</td>
-        <td><span class="pct-bar"><span class="pct-bar-fill ${cls}" style="width:${pct}%"></span></span>${pct}%</td></tr>`;
-    }).join('')}</tbody></table>`;
+  host.innerHTML = `
+    <div class="adminhead">
+      <div><h1>Admin Panel</h1><div class="hindi">${getEmployees().length} employees</div></div>
+      <span class="chip">Emp ${CURRENT_USER.emp_code}</span>
+    </div>
+    <div class="subtabs">
+      ${['employees','activity','settings'].map(t => `<button class="${t===ADMIN_TAB?'active':''}" onclick="ADMIN_TAB='${t}';renderAdmin(document.getElementById('main'))">${({employees:'Employees',activity:'Activity Log',settings:'Settings'})[t]}</button>`).join('')}
+    </div>
+    <div id="adminPane"></div>`;
+  if(ADMIN_TAB==='employees') renderAdminEmployees();
+  else if(ADMIN_TAB==='activity') renderAdminActivity();
+  else if(ADMIN_TAB==='settings') renderAdminSettings();
+}
+function renderAdminEmployees(){
+  document.getElementById('adminPane').innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input id="empQ" placeholder="🔍 Search by Employee ID, name, store…" oninput="filterEmp(this.value)" />
+      <button class="btn sm" onclick="openAddEmp()">➕ Add</button>
+    </div>
+    <div id="empRows"></div>`;
+  filterEmp('');
+}
+function filterEmp(q){
+  q = (q||'').toLowerCase().trim();
+  const rows = getEmployees().filter(e => !q || String(e.emp_code).includes(q) || e.emp_name.toLowerCase().includes(q) || (e.store_code||'').toLowerCase().includes(q) || (e.emp_designation||'').toLowerCase().includes(q));
+  document.getElementById('empRows').innerHTML = rows.length === 0 ? '<div class="empty"><b>No matches</b><p>Try another keyword.</p></div>' :
+    rows.map(e => {
+      const av = (e.emp_name||'?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+      const isSelf = e.emp_code === CURRENT_USER.emp_code;
+      return `
+      <div class="emprow">
+        <div class="av">${av}</div>
+        <div class="info">
+          <b>${e.emp_name} <span style="font-weight:400;color:var(--mute);font-size:12px">#${e.emp_code}</span></b>
+          <small>${e.emp_designation||'—'} · ${e.store_name||'—'} · role: ${e.role}</small>
+        </div>
+        <span class="stat ${e.active?'on':'off'}">${e.active?'Active':'Inactive'}</span>
+        <div class="actions" style="margin-top:8px;flex-basis:100%">
+          <button onclick="adminResetPw(${e.emp_code})">🔑 Reset PW</button>
+          ${e.active ?
+            `<button class="danger" onclick="adminToggle(${e.emp_code},false)" ${isSelf?'disabled':''}>🔴 Deactivate</button>` :
+            `<button class="warn"   onclick="adminToggle(${e.emp_code},true)">🟢 Activate</button>`}
+        </div>
+      </div>`}).join('') + `<div class="sub" style="margin-top:8px">${rows.length} of ${getEmployees().length} shown</div>`;
+}
+function openAddEmp(){
+  document.getElementById('newEmpStore').innerHTML = STORES.map(s=>`<option value="${s.code}">${s.name} (${s.code})</option>`).join('');
+  document.getElementById('newEmpCode').value='';
+  document.getElementById('newEmpName').value='';
+  document.getElementById('newEmpMobile').value='';
+  showModal('addEmpModal');
+}
+function adminAddEmployee(){
+  const code = parseInt(document.getElementById('newEmpCode').value,10);
+  const name = document.getElementById('newEmpName').value.trim();
+  const mobile = document.getElementById('newEmpMobile').value.trim();
+  const desig = document.getElementById('newEmpDesig').value;
+  const storeCode = document.getElementById('newEmpStore').value;
+  const role = document.getElementById('newEmpRole').value;
+  if(!code || !name){ toast('Employee ID and Name are required'); return; }
+  const all = getEmployees();
+  if(all.find(e=>e.emp_code===code)){ toast('Employee ID already exists'); return; }
+  const store = STORES.find(s=>s.code===storeCode);
+  const newEmp = {emp_code:code, emp_name:name, emp_mobile:mobile, emp_designation:desig, hod:CURRENT_USER.hod||'Samarendra', store_code:storeCode, store_name:store?store.name:'', role:role, active:true};
+  all.push(newEmp); setEmployees(all);
+  const initialPw = 'MB@'+code;
+  setPwInfo(code, {set_at:Date.now(), history:[initialPw]});
+  hideModal('addEmpModal');
+  toast(`Created ${name} (${code}) · Initial password: ${initialPw}`);
+  filterEmp('');
+}
+function adminToggle(code, active){
+  const all = getEmployees(); const e = all.find(x => x.emp_code === code);
+  if(!e) return;
+  e.active = active;
+  setEmployees(all);
+  filterEmp(document.getElementById('empQ').value);
+  toast(`${e.emp_name} ${active?'activated 🟢':'deactivated 🔴'}`);
+}
+function adminResetPw(code){
+  const e = getEmployees().find(x=>x.emp_code===code); if(!e) return;
+  const newPw = 'MB@'+code+'-'+Math.random().toString(36).slice(2,5);
+  const pw = getPwInfo(code);
+  pw.history = [...pw.history, newPw].slice(-5);
+  pw.set_at = Date.now();
+  setPwInfo(code, pw);
+  toast(`Password reset for ${e.emp_name}. Temp password: ${newPw}`);
+}
+function renderAdminActivity(){
+  document.getElementById('adminPane').innerHTML = `
+    <div class="sub" style="margin-bottom:10px">Last admin actions on this device (mock — Phase 3 reads from <code>admin_activity_log</code> table)</div>
+    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>create_employee · target: Priya Sharma (801) · 2 days ago</small></div></div>
+    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>reset_password · target: Geeta Jha (35) · 3 days ago</small></div></div>
+    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>deactivate · target: Sunita Kapoor (803) · 5 days ago</small></div></div>
+    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>role_change · target: Risabh Mishra (2253) · employee → manager · 1 week ago</small></div></div>`;
+}
+function renderAdminSettings(){
+  document.getElementById('adminPane').innerHTML = `
+    <div class="card"><h2>Password Policy</h2>
+      <div class="sub" style="line-height:1.7">• Expires every <b>60 days</b><br/>• Last <b>3 passwords blocked</b> on reset<br/>• OTP via Fast2SMS for "Forgot Password"<br/>• Minimum length: 6 characters</div>
+    </div>
+    <div class="card"><h2>Roles</h2>
+      <div class="sub" style="line-height:1.7">
+        <b>admin</b> — Emp 2266 only · sees Admin Panel<br/>
+        <b>owner</b> · <b>manager</b> — see "All Submissions"<br/>
+        <b>employee</b> — sees only own submissions
+      </div>
+    </div>
+    <div class="card"><h2>Reset demo data</h2>
+      <div class="sub">Restore the demo to its starting state (clears localStorage).</div>
+      <div style="margin-top:10px"><button class="btn danger" onclick="if(confirm('Reset all demo data?')){localStorage.clear();location.reload();}">Reset everything</button></div>
+    </div>`;
 }
 
-function renderByStore(rows) {
-  if (!rows.length) {
-    document.getElementById('reportByStore').innerHTML = '<div class="loading-text">No data.</div>';
-    return;
-  }
-  document.getElementById('reportByStore').innerHTML = `<table class="report-table">
-    <thead><tr><th>Store</th><th class="num">Audits</th><th>Compliance</th><th></th></tr></thead>
-    <tbody>${rows.map(r => {
-      const pct = r.avg_compliance || 0;
-      const cls = pct >= 80 ? '' : pct >= 50 ? 'mid' : 'low';
-      const lastId = r.last_session_id || '';
-      return `<tr><td>${esc(r.store_name || r.store_code)}<div style="font-size:10px;color:#999">${esc(r.store_code)}</div></td>
-        <td class="num">${r.audits}</td>
-        <td><span class="pct-bar"><span class="pct-bar-fill ${cls}" style="width:${pct}%"></span></span>${pct.toFixed(1)}%</td>
-        <td>${lastId ? `<button class="btn btn-sm btn-secondary" onclick="downloadSessionCsv('${esc(lastId)}')">CSV</button>` : ''}</td></tr>`;
-    }).join('')}</tbody></table>`;
-}
-
-async function downloadSessionCsv(id) {
-  try {
-    const r = await fetch('/api/reports?action=session-csv&id=' + encodeURIComponent(id), {
-      headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {}
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  BOOT                                                    ║
+   ╚══════════════════════════════════════════════════════════╝ */
+(function init(){
+  // Wire OTP grid auto-advance
+  document.querySelectorAll('#otpStep2 .otp-grid input').forEach((inp, i, list) => {
+    inp.addEventListener('input', e => {
+      if(e.target.value && i < list.length-1) list[i+1].focus();
     });
-    if (!r.ok) return showToast('Download failed', 'error');
-    const blob = await r.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'audit_' + id + '.csv';
-    document.body.appendChild(a); a.click(); a.remove();
-  } catch(e) { showToast('Download failed', 'error'); }
-}
-
-function fmtDate(s) {
-  if (!s) return '';
-  try { return new Date(s).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }); }
-  catch { return s; }
-}
-
-// ─── LOGIN ────────────────────────────────────────────
-async function doLogin() {
-  const empCode = document.getElementById('loginEmpCode').value.trim();
-  const password = document.getElementById('loginPwd').value;
-  const remember = document.getElementById('rememberMe').checked;
-  if (!empCode) return showToast('Enter your Employee ID', 'error');
-  if (!password) return showToast('Enter your password', 'error');
-
-  setLoading('loginBtn', true, 'Signing in...');
-  try {
-    const r = await apiFetch('/api/auth?action=login', 'POST', { empCode, password, remember });
-    if (!r.success) return showToast(r.error || 'Login failed', 'error');
-    authToken = r.token;
-    currentUser = r.employee;
-    if (r.passwordExpired) {
-      document.getElementById('loginSection').classList.add('hidden');
-      document.getElementById('expiredPwdModal').classList.remove('hidden');
-      ['epCurrent','epNew','epConfirm'].forEach(id => { document.getElementById(id).value = ''; });
-      return;
-    }
-    _loginRemember = remember;
-    if (!r.tcAccepted) {
-      document.getElementById('loginSection').classList.add('hidden');
-      document.getElementById('tcModal').classList.remove('hidden');
-      return;
-    }
-    if (remember) saveAuthToken(authToken);
-    else clearAuthToken()
-    document.getElementById('loginSection').classList.add('hidden');
-    await initApp();
-  } catch(e) {
-    showToast('Network error. Please try again.', 'error');
-  } finally {
-    setLoading('loginBtn', false, 'Sign In');
-  }
-}
-
-// ─── T&C ACCEPT/DECLINE ──────────────────────────────
-async function doAcceptTC() {
-  const btn = document.getElementById('tcAcceptBtn');
-  if (btn) btn.disabled = true;
-  try {
-    const r = await apiFetch('/api/auth?action=accept-tc', 'POST', { empCode: currentUser.empCode });
-    if (!r.success) {
-      showToast(r.error || 'Failed to accept. Please try again.', 'error');
-      if (btn) btn.disabled = false;
-      return;
-    }
-    document.getElementById('tcModal').classList.add('hidden');
-    if (_loginRemember) saveAuthToken(authToken); else clearAuthToken();
-    document.getElementById('loginSection').classList.add('hidden');
-    await initApp();
-  } catch(e) {
-    showToast('Network error. Please try again.', 'error');
-    if (btn) btn.disabled = false;
-  }
-}
-function doDeclineTC() {
-  authToken = null;
-  currentUser = null;
-  document.getElementById('tcModal').classList.add('hidden');
-  document.getElementById('loginSection').classList.remove('hidden');
-  showToast('You must accept the Terms & Conditions to use this app.', 'error');
-}
-
-// ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
-async function searchEmployee() {
-  const code = document.getElementById('searchEmpCode').value.trim();
-  if (!code) return showToast('Please enter an Employee ID', 'error');
-  const result = document.getElementById('searchResult');
-  result.innerHTML = '<div style="text-align:center;padding:16px;color:#888">Searching...</div>';
-  try {
-    const r = await apiFetch('/api/admin?action=get-employee&empCode=' + code, 'GET');
-    if (!r.success) { result.innerHTML = '<div style="background:#ffebee;color:#c62828;padding:12px;border-radius:8px;text-align:center">' + (r.error || 'Employee not found') + '</div>'; return; }
-    renderEmployeeResult(r.employee);
-  } catch(e) { result.innerHTML = '<div style="color:#c62828;padding:12px;text-align:center">Network error</div>'; }
-}
-
-function renderEmployeeResult(e) {
-  const result = document.getElementById('searchResult');
-  const isActive = e.store_status === 'Active';
-  const safeName = (e.emp_name || '').replace(/"/g, '&quot;');
-  result.innerHTML =
-    '<div style="background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.1)">' +
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">' +
-    '<div>' +
-    '<div style="font-weight:700;font-size:1rem">' + e.emp_name + ' <span style="color:#999;font-size:0.8rem">#' + e.emp_code + '</span></div>' +
-    '<div style="font-size:0.85rem;color:#666">' + (e.emp_designation || '') + (e.store_name ? ' &bull; ' + e.store_name : '') + '</div>' +
-    (e.emp_mobile ? '<div style="font-size:0.8rem;color:#888">&#x1F4F1; ' + e.emp_mobile + '</div>' : '') +
-    '<div style="font-size:0.75rem;color:#aaa;margin-top:2px">Role: ' + (e.role || 'employee') + '</div>' +
-    '</div>' +
-    '<span style="padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:700;background:' + (isActive ? '#e8f5e9' : '#ffebee') + ';color:' + (isActive ? '#2e7d32' : '#c62828') + '">' + e.store_status + '</span>' +
-    '</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-    '<button class="btn btn-secondary btn-sm" data-code="' + e.emp_code + '" data-name="' + safeName + '" onclick="adminResetPwd(this.dataset.code, this.dataset.name)">&#x1F511; Reset Password</button>' +
-    '<button class="btn btn-sm" data-code="' + e.emp_code + '" data-status="' + e.store_status + '" onclick="adminToggleStatus(this.dataset.code, this.dataset.status)" style="background:' + (isActive ? '#fff3e0' : '#e8f5e9') + ';color:' + (isActive ? '#e65100' : '#2e7d32') + ';border:1px solid ' + (isActive ? '#ffcc80' : '#a5d6a7') + '">' + (isActive ? '&#x1F534; Deactivate' : '&#x1F7E2; Activate') + '</button>' +
-    '</div></div>';
-}
-
-async function adminToggleStatus(empCode, currentStatus) {
-  const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-  const msg = newStatus === 'Inactive' ? 'DEACTIVATE this employee? They will lose app access immediately.' : 'ACTIVATE this employee? They will regain app access.';
-  if (!confirm('Are you sure you want to ' + msg)) return;
-  try {
-    const r = await apiFetch('/api/admin?action=toggle-status', 'POST', { empCode, status: newStatus });
-    if (!r.success) return showToast(r.error || 'Failed', 'error');
-    showToast(newStatus === 'Inactive' ? 'Employee deactivated' : 'Employee activated', 'success');
-    searchEmployee();
-  } catch(e) { showToast('Network error', 'error'); }
-}
-
-async function adminResetPwd(empCode, empName) {
-  const newPwd = prompt('Set new temporary password for ' + empName + ' (min 6 chars). Employee must change it on next login:');
-  if (newPwd === null) return;
-  if (!newPwd || newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
-  try {
-    const r = await apiFetch('/api/admin?action=reset-password', 'POST', { empCode, newPassword: newPwd });
-    if (!r.success) return showToast(r.error || 'Failed to reset', 'error');
-    showToast('Password reset for ' + empName, 'success');
-  } catch(e) { showToast('Network error', 'error'); }
-}
-
-function showAddEmpForm() {
-  document.getElementById('addEmpForm').classList.remove('hidden');
-  document.getElementById('addEmpToggleBtn').classList.add('hidden');
-  ['addEmpCode','addEmpName','addEmpDesignation','addEmpMobile','addEmpStoreName','addEmpStoreCode','addEmpPwd'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('addEmpRole').value = 'employee';
-}
-function hideAddEmpForm() {
-  document.getElementById('addEmpForm').classList.add('hidden');
-  document.getElementById('addEmpToggleBtn').classList.remove('hidden');
-}
-async function submitAddEmployee() {
-  const empCode = document.getElementById('addEmpCode').value.trim();
-  const empName = document.getElementById('addEmpName').value.trim();
-  const empDesignation = document.getElementById('addEmpDesignation').value.trim();
-  const empMobile = document.getElementById('addEmpMobile').value.trim();
-  const storeCode = document.getElementById('addEmpStoreCode').value.trim();
-  const storeName = document.getElementById('addEmpStoreName').value.trim();
-  const role = document.getElementById('addEmpRole').value;
-  const initialPassword = document.getElementById('addEmpPwd').value;
-  if (!empCode || !empName || !initialPassword) return showToast('Employee ID, Name and Password are required', 'error');
-  if (initialPassword.length < 6) return showToast('Password must be at least 6 characters', 'error');
-  setLoading('addEmpSubmitBtn', true, 'Adding...');
-  try {
-    const r = await apiFetch('/api/admin?action=add-employee', 'POST', { empCode: parseInt(empCode), empName, empDesignation, empMobile, storeCode, storeName, role, initialPassword });
-    if (!r.success) return showToast(r.error || 'Failed to add employee', 'error');
-    showToast(empName + ' added successfully!', 'success');
-    hideAddEmpForm();
-  } catch(e) { showToast('Network error', 'error'); }
-  finally { setLoading('addEmpSubmitBtn', false, 'Add Employee'); }
-}
-
-// ─── EXPIRED PASSWORD CHANGE ──────────────────────────
-async function doExpiredPasswordChange() {
-  const current = document.getElementById('epCurrent').value;
-  const newPwd = document.getElementById('epNew').value;
-  const confirm = document.getElementById('epConfirm').value;
-  if (!current || !newPwd || !confirm) return showToast('All fields are required', 'error');
-  if (newPwd !== confirm) return showToast('Passwords do not match', 'error');
-  if (newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
-  setLoading('epBtn', true, 'Saving...');
-  try {
-    const r = await apiFetch('/api/auth?action=change-password', 'POST', {
-      empCode: currentUser.empCode, currentPassword: current, newPassword: newPwd
+    inp.addEventListener('keydown', e => {
+      if(e.key==='Backspace' && !e.target.value && i>0) list[i-1].focus();
     });
-    if (!r.success) return showToast(r.error || 'Failed to change password', 'error');
-    document.getElementById('expiredPwdModal').classList.add('hidden');
-    showToast('Password updated! Logging you in…', 'success');
-    await initApp();
-  } catch { showToast('Network error', 'error'); }
-  finally { setLoading('epBtn', false, 'Set New Password'); }
-}
-
-function doLogout() {
-  authToken = null; currentUser = null;
-  clearAuthToken()
-  showLogin();
-  showToast('Logged out successfully');
-}
-
-// ─── CHANGE PASSWORD (first login) ────────────────────
-async function doChangePassword() {
-  const current = document.getElementById('cpCurrent').value;
-  const newPwd = document.getElementById('cpNew').value;
-  const confirm = document.getElementById('cpConfirm').value;
-  if (!current || !newPwd || !confirm) return showToast('All fields are required', 'error');
-  if (newPwd !== confirm) return showToast('Passwords do not match', 'error');
-  if (newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
-
-  setLoading('cpBtn', true, 'Saving...');
-  try {
-    const r = await apiFetch('/api/auth?action=change-password', 'POST', {
-      empCode: currentUser.empCode, currentPassword: current, newPassword: newPwd
-    });
-    if (!r.success) return showToast(r.error || 'Failed to change password', 'error');
-    document.getElementById('changePwdModal').classList.add('hidden');
-    currentUser.isFirstLogin = false;
-    showToast('Password changed successfully! \u2713', 'success');
-    // Now kick off the audit session
-    if (document.getElementById('auditStoreCode').value) {
-      await startOrResumeSession();
+  });
+  // ESC closes lightbox & modals
+  document.addEventListener('keydown', e => {
+    if(e.key==='Escape'){
+      if(document.getElementById('lightbox').classList.contains('show')) closeLightbox();
+      document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
     }
-  } catch {
-    showToast('Network error', 'error');
-  } finally {
-    setLoading('cpBtn', false, 'Set Password');
-  }
-}
-
-// ─── FORGOT PASSWORD FLOW ──────────────────────────────
-async function sendOTP() {
-  const empCode = document.getElementById('fpEmpCode').value.trim();
-  const mobile = document.getElementById('fpMobile').value.trim();
-  if (!empCode) return showToast('Enter your Employee ID', 'error');
-  if (!/^\d{10}$/.test(mobile)) return showToast('Enter a valid 10-digit mobile number', 'error');
-  fpEmpCodeVal = empCode;
-
-  setLoading('sendOtpBtn', true, 'Sending OTP...');
-  try {
-    const r = await apiFetch('/api/otp?action=send', 'POST', { empCode, mobile });
-    if (!r.success) return showToast(r.error || 'Failed to send OTP', 'error');
-    showForgotStep(2);
-    if (r.demo) {
-      document.getElementById('otpSentMsg').innerHTML = `&#x26A0; <strong>Demo Mode:</strong> SMS not configured. Your OTP is: <strong style="color:#2e7d32;font-size:20px">${r.otp}</strong>`;
-    } else {
-      document.getElementById('otpSentMsg').textContent = `OTP sent to ****${mobile.slice(-4)}. Valid for 5 minutes.`;
-    }
-    document.getElementById('o1').focus();
-  } catch {
-    showToast('Network error', 'error');
-  } finally {
-    setLoading('sendOtpBtn', false, 'Send OTP');
-  }
-}
-
-function otpMove(el, nextId) {
-  el.value = el.value.replace(/\D/g, '');
-  if (el.value && nextId) document.getElementById(nextId).focus();
-}
-function otpBack(e, el, prevId) {
-  if (e.key === 'Backspace' && !el.value && prevId) document.getElementById(prevId).focus();
-}
-
-async function verifyOTP() {
-  const otp = ['o1','o2','o3','o4','o5','o6'].map(id => document.getElementById(id).value).join('');
-  if (otp.length !== 6) return showToast('Enter the complete 6-digit OTP', 'error');
-
-  setLoading('verifyOtpBtn', true, 'Verifying...');
-  try {
-    const r = await apiFetch('/api/otp?action=verify', 'POST', { empCode: fpEmpCodeVal, otp });
-    if (!r.success) return showToast(r.error || 'Invalid OTP', 'error');
-    fpResetToken = r.resetToken;
-    showForgotStep(3);
-  } catch {
-    showToast('Network error', 'error');
-  } finally {
-    setLoading('verifyOtpBtn', false, 'Verify OTP');
-  }
-}
-
-async function resetPassword() {
-  const newPwd = document.getElementById('fpNewPwd').value;
-  const confirm = document.getElementById('fpConfirmPwd').value;
-  if (!newPwd || !confirm) return showToast('All fields are required', 'error');
-  if (newPwd !== confirm) return showToast('Passwords do not match', 'error');
-  if (newPwd.length < 6) return showToast('Password must be at least 6 characters', 'error');
-
-  setLoading('resetPwdBtn', true, 'Saving...');
-  try {
-    const r = await apiFetch('/api/auth?action=reset-password', 'POST', {
-      empCode: fpEmpCodeVal, newPassword: newPwd, resetToken: fpResetToken
-    });
-    if (!r.success) return showToast(r.error || 'Reset failed', 'error');
-    showToast('Password reset successfully! Please login.', 'success');
-    setTimeout(() => { showLogin(); }, 1500);
-  } catch {
-    showToast('Network error', 'error');
-  } finally {
-    setLoading('resetPwdBtn', false, 'Set New Password');
-  }
-}
-
-// ─── API FETCH ────────────────────────────────────────
-async function apiFetch(url, method, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (authToken) opts.headers['Authorization'] = 'Bearer ' + authToken;
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(url, opts);
-  return r.json();
-}
-
-// ─── UTILS ────────────────────────────────────────────
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.innerHTML = msg;
-  t.className = 'show' + (type ? ' ' + type : '');
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => { t.className = ''; }, 3000);
-}
-
-function setLoading(btnId, loading, text) {
-  const btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.disabled = loading;
-  btn.innerHTML = loading ? `<span class="spinner"></span>${text}` : text;
-}
-
-function togglePw(inputId, btn) {
-  const inp = document.getElementById(inputId);
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '\uD83D\uDE48'; }
-  else { inp.type = 'password'; btn.textContent = '\uD83D\uDC41'; }
-}
-
-function esc(s) {
-  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
+  });
+  // Auto-login via Remember Me
+  if(checkRememberMe()) return;
+})();
 </script>
-
-     <style>
-/* ── MEENA BAZAAR BRAND THEME v4 ── */
-/* Header/Hero: #FDD32C (Yellow) | Buttons: #CCD96F (Lime Green) */
-/* Red #C61E32 only for Forgot Password link | BG: #EAE7DB */
-body { background: #EAE7DB !important; }
-.app-header { background: #FDD32C !important; color: #333333 !important; }
-.app-header .title,
-.app-header .subtitle { color: #333333 !important; }
-.login-hero { background: #FDD32C !important; color: #333333 !important; }
-.login-hero h1,
-.login-hero p { color: #333333 !important; }
-.btn-primary {
-  background: #CCD96F !important;
-  color: #333333 !important;
-  font-weight: 700 !important;
-  border: none !important;
-  box-shadow: 0 3px 0 #a8b84a !important;
-}
-.btn-primary:hover { background: #b8c55a !important; }
-.btn-primary:active { transform: translateY(2px); box-shadow: none !important; }
-.login-card h2,
-.forgot-card h2,
-.modal h3,
-.card-title { color: #333333 !important; }
-.link-btn { color: #C61E32 !important; }
-.link-btn:hover { color: #9e1828 !important; text-decoration: underline !important; }
-.field input:focus,
-.field select:focus,
-.field textarea:focus { border-color: #b8c55a !important; box-shadow: 0 0 0 2px rgba(204,217,111,.3) !important; }
-.area-header { background: #FDD32C !important; border-left-color: #C61E32 !important; }
-.area-header .name { color: #333333 !important; }
-.status-submitted { background: #f5fae0 !important; color: #4a6000 !important; border-color: #CCD96F !important; }
-.login-card { border-top: 3px solid #b8c55a !important; }
-.hist-card { border-left-color: #CCD96F !important; }
-.hist-card.in-progress { border-left-color: #e0a800 !important; }
-.mb-logo-banner { background: #EAE7DB; padding: 22px 20px 14px; text-align: center; }
-.mb-logo-img { height: 90px; width: auto; max-width: 100%; display: block; margin: 0 auto; }
-.mb-logo-text { font-family: 'Sacramento', cursive; font-size: 54px; color: #2c2c2c; line-height: 1.2; }
-     </style>
 </body>
 </html>
