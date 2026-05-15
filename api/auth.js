@@ -78,6 +78,7 @@ module.exports = async (req, res) => {
       storeName: emp.store_name,
       designation: emp.emp_designation,
       mobile: emp.emp_mobile,
+      hod: emp.hod || '',
       isFirstLogin
     }, JWT_SECRET, { expiresIn: expiry });
 
@@ -94,6 +95,7 @@ module.exports = async (req, res) => {
         storeCode: emp.store_code,
         storeName: emp.store_name,
         mobile: emp.emp_mobile,
+        hod: emp.hod || '',
         isFirstLogin
       }
     });

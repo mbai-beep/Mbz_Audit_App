@@ -42,6 +42,10 @@ function recalc(session, answers) {
 
 /* Return snake_case session rows (matches the raw DB shape the frontend renders) */
 function mapSession(r) {
+  let thumbs = [];
+  let audios = [];
+  try { thumbs = JSON.parse(r.thumbnail_urls || '[]'); } catch (_) {}
+  try { audios = JSON.parse(r.audio_urls || '[]'); } catch (_) {}
   return {
     id: r.id,
     store_code: r.store_code,
@@ -58,7 +62,9 @@ function mapSession(r) {
     done_count: r.done_count || 0,
     pending_count: r.pending_count || 0,
     not_done_count: r.not_done_count || 0,
-    compliance_pct: r.compliance_pct || 0
+    compliance_pct: r.compliance_pct || 0,
+    thumbnail_urls: thumbs,
+    audio_urls: audios
   };
 }
 
@@ -219,7 +225,7 @@ module.exports = async (req, res) => {
 
   /* ── POST ?action=submit — close session ───────────────── */
   if (action === 'submit' && req.method === 'POST') {
-    const { sessionId, managerName } = req.body || {};
+    const { sessionId, managerName, thumbnailUrls, audioUrls } = req.body || {};
     if (!sessionId) return res.json({ success: false, error: 'sessionId required' });
     const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [sessionId] });
     if (!s.rows.length) return res.json({ success: false, error: 'Not found' });
@@ -227,11 +233,34 @@ module.exports = async (req, res) => {
         user.role !== 'admin' && user.role !== 'manager') {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
+
+    /* Aggregate thumbnail / audio urls. Caller may pass them; otherwise
+       derive from the audit_answers.photo_urls payloads. Capped at 8 / 3. */
+    let thumbs = Array.isArray(thumbnailUrls) ? thumbnailUrls.slice(0, 8) : null;
+    let audios = Array.isArray(audioUrls) ? audioUrls.slice(0, 3) : null;
+    if (!thumbs) {
+      try {
+        const ar = await db.execute({
+          sql: 'SELECT photo_urls FROM audit_answers WHERE session_id = ?',
+          args: [sessionId]
+        });
+        const all = [];
+        for (const row of ar.rows) {
+          try { const arr = JSON.parse(row.photo_urls || '[]'); if (Array.isArray(arr)) all.push(...arr); } catch (_) {}
+        }
+        thumbs = all.slice(0, 8);
+      } catch (_) { thumbs = []; }
+    }
+    if (!audios) audios = [];
+
     await db.execute({
       sql: `UPDATE audit_sessions
-            SET status = 'submitted', submitted_at = ?, manager_name = COALESCE(NULLIF(?, ''), manager_name)
+            SET status = 'submitted', submitted_at = ?,
+                manager_name = COALESCE(NULLIF(?, ''), manager_name),
+                thumbnail_urls = ?, audio_urls = ?
             WHERE id = ?`,
-      args: [nowIST(), managerName || '', sessionId]
+      args: [nowIST(), managerName || '',
+             JSON.stringify(thumbs), JSON.stringify(audios), sessionId]
     });
     const updated = await loadSessionRow(db, sessionId);
 

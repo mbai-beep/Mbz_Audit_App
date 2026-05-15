@@ -101,9 +101,14 @@ async function ensureTable() {
     done_count INTEGER DEFAULT 0,
     pending_count INTEGER DEFAULT 0,
     not_done_count INTEGER DEFAULT 0,
-    compliance_pct REAL DEFAULT 0
+    compliance_pct REAL DEFAULT 0,
+    thumbnail_urls TEXT DEFAULT '[]',
+    audio_urls TEXT DEFAULT '[]'
   )`);
   try { await d.execute('CREATE INDEX IF NOT EXISTS idx_as_store ON audit_sessions(store_code, audit_date)'); } catch(e) {}
+  /* Safe migrations for older installs */
+  try { await d.execute("ALTER TABLE audit_sessions ADD COLUMN thumbnail_urls TEXT DEFAULT '[]'"); } catch(e) {}
+  try { await d.execute("ALTER TABLE audit_sessions ADD COLUMN audio_urls TEXT DEFAULT '[]'"); } catch(e) {}
 
   /* Audit answers — one per checklist_item per session */
   await d.execute(`CREATE TABLE IF NOT EXISTS audit_answers (

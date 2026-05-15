@@ -306,7 +306,7 @@
       <div class="field">
         <label>Password</label>
         <div class="pw-row">
-          <input id="loginPass" type="password" value="password123" placeholder="••••••••" />
+          <input id="loginPass" type="password" placeholder="••••••••" />
           <button class="eye" onclick="togglePw('loginPass',this)" title="Show/hide">👁️</button>
         </div>
         <div class="hint">First time? Use <b>MB@&lt;YourEmployeeCode&gt;</b> (e.g. MB@2266)</div>
@@ -314,7 +314,7 @@
 
       <div class="row">
         <label><input type="checkbox" id="rememberMe" /> Remember me for 30 days</label>
-        <a href="#" onclick="showModal('otpModal');return false">Forgot Password?</a>
+        <a href="#" onclick="showModal('otpModal');showOtpStep(1);return false">Forgot Password?</a>
       </div>
 
       <button class="signin" onclick="doLogin()">Sign In</button>
@@ -386,6 +386,7 @@
       <div class="field">
         <label>Mobile Number</label>
         <input id="otpMobile" inputmode="numeric" maxlength="10" placeholder="10-digit mobile" />
+        <div class="hint" style="font-size:12px;color:var(--mute);margin-top:6px">We'll send the OTP to your registered mobile. Employee ID from the form above will be used.</div>
       </div>
       <div class="row">
         <button class="btn ghost" onclick="hideModal('otpModal')">Cancel</button>
@@ -399,7 +400,7 @@
         <div class="otp-grid">
           <input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" /><input maxlength="1" inputmode="numeric" />
         </div>
-        <div class="hint" style="font-size:12px;color:var(--mute);margin-top:6px">Demo OTP: <b>123456</b> · Sent to <span id="otpToMob">—</span></div>
+        <div class="hint" style="font-size:12px;color:var(--mute);margin-top:6px">Sent to <span id="otpToMob">—</span></div>
       </div>
       <div class="row">
         <button class="btn ghost" onclick="showOtpStep(1)">← Back</button>
@@ -527,73 +528,36 @@ const ITEMS = [
   {id:25, sec:5, title:'Staff Punctuality',      hindi:'समय पाबंदी',        evidence:'Bio-metric Attendance Report',        photoNeeded:false, what:'100% staff on-time attendance?'}
 ];
 
-/* Employees (subset of full roster for the demo) */
-const STARTING_EMPLOYEES = [
-  {emp_code:2266, emp_name:'Manoj Kumar',  emp_mobile:'8218185203', emp_designation:'AI Engineer',     hod:'Samarendra', store_code:'97-DT',  store_name:'HQ',                    role:'admin',    active:true},
-  {emp_code:1,    emp_name:'Anu Manglani', emp_mobile:'9810005677', emp_designation:'Owner',           hod:'Owner',      store_code:'97-DT',  store_name:'MEENA BAZAAR DT',       role:'owner',    active:true},
-  {emp_code:56,   emp_name:'Ram Kumar Singh',emp_mobile:'8448509683',emp_designation:'Store Manager', hod:'Rohit',      store_code:'01-SE',  store_name:'MEENA BAZAAR SE',       role:'manager',  active:true},
-  {emp_code:35,   emp_name:'Geeta Jha',     emp_mobile:'9871956567', emp_designation:'Store Manager', hod:'Vaseem',     store_code:'02-GK',  store_name:'MEENA BAZAAR GK',       role:'manager',  active:true},
-  {emp_code:1738, emp_name:'Jyoti Dixit',   emp_mobile:'9810837591', emp_designation:'Store Manager', hod:'Nilesh',     store_code:'03-RG',  store_name:'MEENA BAZAAR RG',       role:'manager',  active:true},
-  {emp_code:934,  emp_name:'Sourav Aggarwal',emp_mobile:'8837855005',emp_designation:'Store Manager', hod:'Ravi',       store_code:'15-LDH', store_name:'MEENA BAZAAR LDH',      role:'manager',  active:true},
-  {emp_code:413,  emp_name:'Jayalakshmi S Iyer',emp_mobile:'8898112666',emp_designation:'Store Manager',hod:'Nilesh',    store_code:'36-BBY', store_name:'MEENA BAZAAR BBY',      role:'manager',  active:true},
-  {emp_code:801,  emp_name:'Priya Sharma',  emp_mobile:'9555000801', emp_designation:'Sales Executive',hod:'Rohit',     store_code:'01-SE',  store_name:'MEENA BAZAAR SE',       role:'employee', active:true},
-  {emp_code:802,  emp_name:'Amit Verma',    emp_mobile:'9555000802', emp_designation:'Cashier',       hod:'Rohit',      store_code:'07-CR',  store_name:'MEENA BAZAAR CR',       role:'employee', active:true},
-  {emp_code:803,  emp_name:'Sunita Kapoor', emp_mobile:'9555000803', emp_designation:'Stock Executive',hod:'Vaseem',    store_code:'02-GK',  store_name:'MEENA BAZAAR GK',       role:'employee', active:false}
-];
-const STORES = [
-  {code:'01-SE',name:'MEENA BAZAAR SE',city:'NEW DELHI',manager:'Ram Kumar Singh'},
-  {code:'02-GK',name:'MEENA BAZAAR GK',city:'NEW DELHI',manager:'Geeta Jha'},
-  {code:'03-RG',name:'MEENA BAZAAR RG',city:'NEW DELHI',manager:'Jyoti Dixit'},
-  {code:'05-DLF',name:'MEENA BAZAAR DLF',city:'GURGAON',manager:'Hatneikim Chongloi'},
-  {code:'07-CR',name:'MEENA BAZAAR CR',city:'NEW DELHI',manager:'Rakesh Singh'},
-  {code:'10-IN',name:'MEENA BAZAAR IN',city:'INDORE',manager:'Shivnarayan'},
-  {code:'15-LDH',name:'MEENA BAZAAR LDH',city:'LUDHIANA',manager:'Sourav Aggarwal'},
-  {code:'21-RO1',name:'MEENA BAZAAR RO1',city:'NEW DELHI',manager:'Mohd Suhail'},
-  {code:'23-KPV',name:'MEENA BAZAAR KPV',city:'NEW DELHI',manager:'Ajay Kant'},
-  {code:'36-BBY',name:'MEENA BAZAAR BBY',city:'MUMBAI',manager:'Jayalakshmi S Iyer'}
-];
-
-/* Demo submissions — show with thumbnails + voice playback in My Submissions */
-function demoImg(c1,c2,label){
-  // Inline SVG data-URI placeholder so demos work offline
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${c1}'/><stop offset='1' stop-color='${c2}'/></linearGradient></defs><rect width='200' height='200' fill='url(%23g)'/><text x='100' y='115' fill='white' font-family='Arial' font-size='22' font-weight='700' text-anchor='middle'>${label}</text></svg>`;
-  return 'data:image/svg+xml;utf8,' + svg.replace(/#/g,'%23');
-}
-const SAMPLE_IMG_1 = demoImg('#8DBBCC','#5C8DA0','Cleanliness');
-const SAMPLE_IMG_2 = demoImg('#1B9B6C','#0F7A51','Stock');
-const SAMPLE_IMG_3 = demoImg('#E08A1A','#B26A0A','Uniform');
-const SAMPLE_IMG_4 = demoImg('#7E90FF','#5560D6','VM');
-
-const DEMO_AUDIO_DATA_URI = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-const STARTING_SUBMISSIONS = [
-  {id:'A001', date:'2026-05-08', store_code:'01-SE', store_name:'MEENA BAZAAR SE',  auditor_code:2266, auditor:'Manoj Kumar',     pass:22, total:25, pct:88, grade:'Gold',   thumbs:[SAMPLE_IMG_1, SAMPLE_IMG_3], audio:[DEMO_AUDIO_DATA_URI]},
-  {id:'A002', date:'2026-05-06', store_code:'07-CR', store_name:'MEENA BAZAAR CR',  auditor_code:2266, auditor:'Manoj Kumar',     pass:19, total:25, pct:76, grade:'Silver', thumbs:[SAMPLE_IMG_2], audio:[]},
-  {id:'A003', date:'2026-05-04', store_code:'15-LDH',store_name:'MEENA BAZAAR LDH', auditor_code:56,   auditor:'Ram Kumar Singh', pass:14, total:25, pct:56, grade:'Red',    thumbs:[SAMPLE_IMG_4, SAMPLE_IMG_1, SAMPLE_IMG_2], audio:[DEMO_AUDIO_DATA_URI]},
-  {id:'A004', date:'2026-05-02', store_code:'36-BBY',store_name:'MEENA BAZAAR BBY', auditor_code:413,  auditor:'Jayalakshmi S Iyer',pass:23,total:25,pct:92, grade:'Gold',   thumbs:[SAMPLE_IMG_2, SAMPLE_IMG_4], audio:[]},
-  {id:'A005', date:'2026-04-30', store_code:'05-DLF',store_name:'MEENA BAZAAR DLF', auditor_code:2266, auditor:'Manoj Kumar',     pass:24, total:25, pct:96, grade:'Gold',   thumbs:[SAMPLE_IMG_3, SAMPLE_IMG_1, SAMPLE_IMG_4], audio:[DEMO_AUDIO_DATA_URI]}
-];
+/* Privileged roles (Admin Panel visibility + "All Submissions" label) */
+const PRIVILEGED_ROLES = ['admin', 'owner', 'manager'];
 
 /* ╔══════════════════════════════════════════════════════════╗
-   ║  LOCAL STORAGE STATE (mocks server-side persistence)     ║
+   ║  API HELPER + AUTH TOKEN                                 ║
    ╚══════════════════════════════════════════════════════════╝ */
-const LS = {
-  get(k, dflt){ try{ const v = localStorage.getItem(k); return v===null?dflt:JSON.parse(v); }catch(e){ return dflt; } },
-  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
-  rm(k){ try{ localStorage.removeItem(k); }catch(e){} }
-};
-function getEmployees(){
-  const stored = LS.get('mbz_employees', null);
-  return stored || STARTING_EMPLOYEES;
+const TOKEN_KEY = 'mbz_audit_token';
+let API_TOKEN = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || '';
+
+async function api(method, path, body, opts){
+  opts = opts || {};
+  const headers = { 'Content-Type': 'application/json' };
+  if (API_TOKEN && !opts.noAuth) headers.Authorization = 'Bearer ' + API_TOKEN;
+  try {
+    const res = await fetch(path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    let data;
+    try { data = await res.json(); }
+    catch (_) { data = { success:false, error:'Bad response (status '+res.status+')' }; }
+    if (res.status === 401 || res.status === 403) {
+      data._authError = true;
+    }
+    return data;
+  } catch (e) {
+    return { success: false, error: 'Network: ' + e.message };
+  }
 }
-function setEmployees(arr){ LS.set('mbz_employees', arr); }
-function getSubmissions(){ return LS.get('mbz_submissions', STARTING_SUBMISSIONS); }
-function setSubmissions(arr){ LS.set('mbz_submissions', arr); }
-function getPwInfo(code){
-  return LS.get('mbz_pw_'+code, {set_at: Date.now() - (Math.random()*40*86400*1000), history:['password123']});
-}
-function setPwInfo(code, info){ LS.set('mbz_pw_'+code, info); }
-function getTC(code){ return LS.get('mbz_tc_'+code, false); }
-function setTC(code, v){ LS.set('mbz_tc_'+code, v); }
 
 /* ╔══════════════════════════════════════════════════════════╗
    ║  SESSION & ROUTER                                        ║
@@ -601,69 +565,116 @@ function setTC(code, v){ LS.set('mbz_tc_'+code, v); }
 let CURRENT_USER = null;
 let CURRENT_VIEW = 'home';
 let ADMIN_TAB = 'employees';
-const SESSION = {idx:0, storeCode:'', date:TODAY, responses:{}, total:0, lastResult:null};
+let STORES = [];               // loaded from /api/stores
+let EMPLOYEES_CACHE = [];      // loaded by admin tab from /api/admin?action=list-employees
+let SUBMISSIONS_CACHE = [];    // loaded by submissions tab from /api/audits?action=list
+const SESSION = {idx:0, storeCode:'', date:TODAY, responses:{}, sessionId:null};
 
-function isAdminish(u){ return u && ['admin','owner','manager'].includes(u.role); }
-function canAccessAdmin(u){ return u && u.emp_code === 2266; } // strict per spec
+function isAdminish(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
+function canAccessAdmin(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
+function isAdmin(u){ return u && u.role === 'admin'; }
 
 /* ╔══════════════════════════════════════════════════════════╗
    ║  AUTH FLOW                                               ║
    ╚══════════════════════════════════════════════════════════╝ */
-function checkRememberMe(){
-  const r = LS.get('mbz_remember', null);
-  if(r && r.expires_at > Date.now()){
-    const u = getEmployees().find(e => e.emp_code === r.emp_code);
-    if(u && u.active){ CURRENT_USER = u; postLogin(); return true; }
+function userFromJwtPayload(p){
+  return {
+    emp_code: p.empCode,
+    emp_name: p.empName,
+    emp_designation: p.designation || '',
+    emp_mobile: p.mobile || '',
+    hod: p.hod || '',
+    store_code: p.storeCode || '',
+    store_name: p.storeName || '',
+    role: p.role || 'employee',
+    active: true
+  };
+}
+
+async function checkRememberMe(){
+  if (!API_TOKEN) return false;
+  const r = await api('GET', '/api/auth?action=verify');
+  if (r && r.valid && r.user) {
+    CURRENT_USER = userFromJwtPayload(r.user);
+    await loadStores();
+    enterApp();
+    return true;
   }
+  // token invalid; wipe
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  API_TOKEN = '';
   return false;
 }
-function doLogin(){
+
+async function doLogin(){
   const code = parseInt(document.getElementById('loginCode').value, 10);
   const pw   = document.getElementById('loginPass').value;
   const remember = document.getElementById('rememberMe').checked;
   if(!code){ toast('Enter Employee ID'); return; }
-  const u = getEmployees().find(e => e.emp_code === code);
-  if(!u){ toast('Employee not found'); return; }
-  if(!u.active){ toast('This account is deactivated. Contact Admin.'); return; }
-  // For demo, accept either 'password123' or stored history's last item
-  const pwInfo = getPwInfo(code);
-  const ok = pw === 'password123' || pw === (pwInfo.history[pwInfo.history.length-1]) || pw === 'MB@'+code;
-  if(!ok){ toast('Incorrect password'); return; }
-  if(remember){
-    LS.set('mbz_remember', {emp_code:code, expires_at: Date.now() + 30*86400*1000});
-  } else { LS.rm('mbz_remember'); }
-  CURRENT_USER = u;
+  if(!pw){   toast('Enter password');     return; }
+
+  const r = await api('POST', '/api/auth?action=login', { empCode: code, password: pw, remember }, { noAuth:true });
+  if(!r || !r.success){ toast(r && r.error ? r.error : 'Login failed'); return; }
+
+  API_TOKEN = r.token;
+  if (remember) {
+    localStorage.setItem(TOKEN_KEY, API_TOKEN);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, API_TOKEN);
+    localStorage.removeItem(TOKEN_KEY);
+  }
+
+  CURRENT_USER = {
+    emp_code: r.employee.empCode,
+    emp_name: r.employee.empName,
+    emp_designation: r.employee.designation || '',
+    emp_mobile: r.employee.mobile || '',
+    hod: r.employee.hod || '',
+    store_code: r.employee.storeCode || '',
+    store_name: r.employee.storeName || '',
+    role: r.employee.role || 'employee',
+    active: true,
+    _passwordExpired: !!r.passwordExpired,
+    _tcAccepted: !!r.tcAccepted,
+    _isFirstLogin: !!r.employee.isFirstLogin
+  };
+
+  await loadStores();
   postLogin();
 }
+
 function postLogin(){
-  // Check T&C
-  if(!getTC(CURRENT_USER.emp_code)){
+  if (!CURRENT_USER._tcAccepted) {
     showModal('tcModal');
     return;
   }
   enterApp();
-  // Check password expiry (60 days)
-  const pw = getPwInfo(CURRENT_USER.emp_code);
-  const days = Math.floor((Date.now() - pw.set_at)/86400000);
-  if(days >= 60){
+  if (CURRENT_USER._passwordExpired || CURRENT_USER._isFirstLogin) {
     showModal('pwExpiryModal');
-  } else if(days >= 53){
-    renderBanner({type:'warn', icon:'⏰', title:`Password expires in ${60-days} days`, body:'You will be asked to renew soon.', action:{label:'Renew now', fn:()=>showModal('pwExpiryModal')}});
   }
 }
-function acceptTC(){
+
+async function acceptTC(){
   if(!document.getElementById('tcAccept').checked){ toast('Tick the box to accept'); return; }
-  setTC(CURRENT_USER.emp_code, {accepted_at: Date.now(), version:1});
+  const r = await api('POST', '/api/auth?action=accept-tc', { empCode: CURRENT_USER.emp_code });
+  if(!r.success){ toast(r.error || 'Failed to record T&C'); return; }
+  CURRENT_USER._tcAccepted = true;
   hideModal('tcModal');
   enterApp();
+  if (CURRENT_USER._passwordExpired || CURRENT_USER._isFirstLogin) {
+    showModal('pwExpiryModal');
+  }
 }
+
 function enterApp(){
   document.getElementById('loginView').style.display='none';
   document.getElementById('appShell').style.display='block';
   document.getElementById('bnav').style.display='grid';
   const u = CURRENT_USER;
   const av = (u.emp_name||'?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
-  const adminPill = canAccessAdmin(u) ? '<span class="pill admin">Admin · 2266</span>' : '';
+  const adminPill = canAccessAdmin(u) ? `<span class="pill admin">${u.role[0].toUpperCase()+u.role.slice(1)} · ${u.emp_code}</span>` : '';
   document.getElementById('userStrip').innerHTML = `
     <div class="av">${av}</div>
     <div class="who">
@@ -674,12 +685,17 @@ function enterApp(){
   document.getElementById('navSubLabel').textContent = isAdminish(u) ? 'All' : 'My';
   go('home');
 }
+
 function logout(){
-  LS.rm('mbz_remember');
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  API_TOKEN = '';
   CURRENT_USER = null;
   document.getElementById('loginView').style.display='flex';
   document.getElementById('appShell').style.display='none';
   document.getElementById('bnav').style.display='none';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('bannerHost').innerHTML = '';
 }
 function togglePw(id, btn){
   const el = document.getElementById(id);
@@ -688,56 +704,82 @@ function togglePw(id, btn){
 }
 
 /* OTP forgot-password flow */
-let OTP_TARGET = null;
+let OTP_TARGET_EMPCODE = null;
+let OTP_RESET_TOKEN = null;
+
 function showOtpStep(n){
   for(let i=1;i<=3;i++){ const el=document.getElementById('otpStep'+i); if(el) el.style.display = i===n?'block':'none'; }
   document.getElementById('otpTitle').textContent = n===3?'🔑 Set New Password':'🔐 Forgot Password';
   document.getElementById('otpLead').textContent  = n===1?'Enter your registered mobile number to receive an OTP.':n===2?'Enter the 6-digit OTP we sent to your mobile.':'Choose a new password.';
+  if (n === 2) {
+    document.querySelectorAll('#otpStep2 .otp-grid input').forEach(i => i.value = '');
+  }
 }
-function sendOTP(){
+async function sendOTP(){
   const mob = (document.getElementById('otpMobile').value||'').trim();
   if(!/^\d{10}$/.test(mob)){ toast('Enter a valid 10-digit mobile'); return; }
-  const u = getEmployees().find(e => e.emp_mobile === mob);
-  OTP_TARGET = u || {emp_code:null, emp_mobile:mob};
+  const code = parseInt(document.getElementById('loginCode').value, 10);
+  if (!code) { toast('Enter Employee ID on the form first'); return; }
+
+  const r = await api('POST', '/api/otp?action=send', { empCode: code, mobile: mob }, { noAuth:true });
+  if(!r.success){ toast(r.error || 'Failed to send OTP'); return; }
+  OTP_TARGET_EMPCODE = code;
   document.getElementById('otpToMob').textContent = '•••••' + mob.slice(-5);
   showOtpStep(2);
-  toast('Demo OTP is 123456 (Fast2SMS in production)');
+  if (r.demo) toast('Demo OTP: ' + r.otp);
+  else toast('OTP sent ✓');
 }
-function verifyOTP(){
+async function verifyOTP(){
   const inputs = document.querySelectorAll('#otpStep2 .otp-grid input');
   const code = [...inputs].map(i => i.value).join('');
-  if(code !== '123456'){ toast('Incorrect OTP'); return; }
+  if(code.length !== 6){ toast('Enter 6-digit OTP'); return; }
+  if(!OTP_TARGET_EMPCODE){ toast('Restart forgot password'); return; }
+
+  const r = await api('POST', '/api/otp?action=verify', { empCode: OTP_TARGET_EMPCODE, otp: code }, { noAuth:true });
+  if(!r.success){ toast(r.error || 'Invalid OTP'); return; }
+  OTP_RESET_TOKEN = r.resetToken;
   showOtpStep(3);
 }
-function resetPassword(){
+async function resetPassword(){
   const p1 = document.getElementById('newPw1').value;
   const p2 = document.getElementById('newPw2').value;
   if(p1.length < 6){ toast('Password must be at least 6 characters'); return; }
   if(p1 !== p2){ toast('Passwords do not match'); return; }
-  if(!OTP_TARGET || !OTP_TARGET.emp_code){ toast('OTP succeeded but no matching account found'); hideModal('otpModal'); return; }
-  const pw = getPwInfo(OTP_TARGET.emp_code);
-  if(pw.history.slice(-3).includes(p1)){ toast('Cannot reuse last 3 passwords'); return; }
-  pw.history = [...pw.history, p1].slice(-5);
-  pw.set_at = Date.now();
-  setPwInfo(OTP_TARGET.emp_code, pw);
+  if(!OTP_TARGET_EMPCODE || !OTP_RESET_TOKEN){ toast('Reset session expired'); return; }
+
+  const r = await api('POST', '/api/auth?action=reset-password', {
+    empCode: OTP_TARGET_EMPCODE,
+    newPassword: p1,
+    resetToken: OTP_RESET_TOKEN
+  }, { noAuth:true });
+  if(!r.success){ toast(r.error || 'Failed to reset'); return; }
+
+  OTP_TARGET_EMPCODE = null; OTP_RESET_TOKEN = null;
   hideModal('otpModal');
   toast('Password updated. Please sign in with your new password.');
 }
-function renewPassword(){
+async function renewPassword(){
   const old = document.getElementById('pwOld').value;
   const p1  = document.getElementById('pwNew1').value;
   const p2  = document.getElementById('pwNew2').value;
-  const pw  = getPwInfo(CURRENT_USER.emp_code);
-  const validOld = old === 'password123' || old === pw.history[pw.history.length-1] || old === 'MB@'+CURRENT_USER.emp_code;
-  if(!validOld){ toast('Current password is incorrect'); return; }
+  if(!old){ toast('Enter your current password'); return; }
   if(p1.length < 6){ toast('New password must be at least 6 characters'); return; }
   if(p1 !== p2){ toast('Passwords do not match'); return; }
-  if(pw.history.slice(-3).includes(p1)){ toast('Cannot reuse last 3 passwords'); return; }
-  pw.history = [...pw.history, p1].slice(-5);
-  pw.set_at = Date.now();
-  setPwInfo(CURRENT_USER.emp_code, pw);
+
+  const r = await api('POST', '/api/auth?action=change-password', {
+    empCode: CURRENT_USER.emp_code,
+    currentPassword: old,
+    newPassword: p1
+  });
+  if(!r.success){ toast(r.error || 'Failed'); return; }
+
+  CURRENT_USER._passwordExpired = false;
+  CURRENT_USER._isFirstLogin = false;
   hideModal('pwExpiryModal');
-  document.getElementById('bannerHost').innerHTML='';
+  document.getElementById('bannerHost').innerHTML = '';
+  document.getElementById('pwOld').value = '';
+  document.getElementById('pwNew1').value = '';
+  document.getElementById('pwNew2').value = '';
   toast('Password renewed successfully ✓');
 }
 
@@ -766,6 +808,21 @@ function closeLightbox(e){
 }
 
 /* ╔══════════════════════════════════════════════════════════╗
+   ║  STORES (loaded from /api/stores)                        ║
+   ╚══════════════════════════════════════════════════════════╝ */
+async function loadStores(){
+  const r = await api('GET', '/api/stores', null, { noAuth:true });
+  if (r && r.success && Array.isArray(r.stores)) {
+    STORES = r.stores.map(s => ({
+      code: s.code, name: s.name, city: s.city || '', locality: s.locality || '',
+      manager: s.manager || ''
+    }));
+  } else {
+    STORES = [];
+  }
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
    ║  ROUTER                                                  ║
    ╚══════════════════════════════════════════════════════════╝ */
 function go(view){
@@ -790,11 +847,15 @@ function go(view){
 /* ╔══════════════════════════════════════════════════════════╗
    ║  HOME                                                    ║
    ╚══════════════════════════════════════════════════════════╝ */
-function renderHome(host){
+async function renderHome(host){
   const u = CURRENT_USER;
-  const subs = getSubmissions().filter(s => isAdminish(u) || s.auditor_code === u.emp_code);
-  const thisMonth = subs.filter(s => s.date.slice(0,7) === TODAY.slice(0,7));
-  const avg = subs.length ? Math.round(subs.reduce((a,b)=>a+b.pct,0)/subs.length) : 0;
+  host.innerHTML = `
+    <div style="margin-bottom:16px"><h1>Welcome 👋</h1><div class="hindi">${u.emp_name} · ${u.emp_designation}</div></div>
+    <div class="empty"><div class="ic">⏳</div><b>Loading…</b></div>`;
+  await loadSubmissions();
+  const subs = SUBMISSIONS_CACHE;
+  const thisMonth = subs.filter(s => (s.date||'').slice(0,7) === TODAY.slice(0,7));
+  const avg = subs.length ? Math.round(subs.reduce((a,b)=>a+(b.pct||0),0)/subs.length) : 0;
   host.innerHTML = `
     <div style="margin-bottom:16px"><h1>Welcome 👋</h1><div class="hindi">${u.emp_name} · ${u.emp_designation}</div></div>
 
@@ -813,7 +874,7 @@ function renderHome(host){
     ${canAccessAdmin(u) ? `
       <button class="bigbtn" onclick="go('admin')">
         <span class="ic" style="background:#FAF3E0;color:#7A5C18">🔒</span>
-        <div class="body"><div>Admin Panel</div><small>Manage employees · only visible to Emp 2266</small></div>
+        <div class="body"><div>Admin Panel</div><small>Manage employees · ${isAdmin(u) ? 'full access' : 'read-only · admin actions need role: admin'}</small></div>
         <span class="arrow">›</span>
       </button>` : ''}
 
@@ -831,6 +892,11 @@ function renderHome(host){
    ║  AUDIT — store pick + form + result                       ║
    ╚══════════════════════════════════════════════════════════╝ */
 function renderAuditStart(host){
+  if (!STORES.length) {
+    host.innerHTML = '<div class="empty"><div class="ic">⏳</div><b>Loading stores…</b></div>';
+    loadStores().then(()=>renderAuditStart(host));
+    return;
+  }
   host.innerHTML = `
     <h1>Pick a store</h1>
     <div class="hindi" style="margin-bottom:10px">कौन-सी दुकान?</div>
@@ -844,18 +910,21 @@ function renderAuditStart(host){
 }
 function filterStores(q){
   q = (q||'').toLowerCase().trim();
-  const list = STORES.filter(s => !q || s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.city.toLowerCase().includes(q));
-  document.getElementById('storeList').innerHTML = list.map(s => `
-    <button class="storetile" onclick="pickStore('${s.code}')">
-      <b>${s.name}</b><small>${s.code} · ${s.city}</small>
-      <small style="color:var(--brand);font-weight:700;margin-top:4px">SM: ${s.manager}</small>
-    </button>`).join('');
+  const list = STORES.filter(s => !q || (s.code||'').toLowerCase().includes(q) || (s.name||'').toLowerCase().includes(q) || (s.city||'').toLowerCase().includes(q));
+  document.getElementById('storeList').innerHTML = list.length === 0 ? '<div class="empty"><b>No stores</b><p>Adjust the search.</p></div>' : list.map(s => {
+    const safeCode = String(s.code||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<button class="storetile" onclick="pickStore('${safeCode}')">
+      <b>${s.name||'—'}</b><small>${s.code} · ${s.city||''}</small>
+      ${s.manager?`<small style="color:var(--brand);font-weight:700;margin-top:4px">SM: ${s.manager}</small>`:''}
+    </button>`;
+  }).join('');
 }
 function pickStore(code){
   SESSION.storeCode = code;
   SESSION.idx = 0;
   SESSION.responses = {};
-  ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:'', photos:[], voiceUrl:'', voiceBlob:null});
+  SESSION.sessionId = null;
+  ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:'', photos:[], voiceUrl:'', uploading:false});
   go('audit-form');
 }
 function renderAuditForm(host){
@@ -881,7 +950,7 @@ function renderAuditForm(host){
         <div class="photoslot">
           ${(r.photos||[]).map((ph,i)=>`<div class="ph" onclick="openLightbox('${ph.url}')"><img src="${ph.url}" alt=""/><span class="x" onclick="event.stopPropagation();rmPhoto(${it.id},${i})">×</span></div>`).join('')}
           ${(r.photos||[]).length < 3 ? `
-            <div class="add" onclick="document.getElementById('file-${it.id}').click()"><b>＋</b>Add Photo<br/><small>${(r.photos||[]).length}/3</small></div>`:''}
+            <div class="add" onclick="document.getElementById('file-${it.id}').click()"><b>＋</b>${r.uploading?'Uploading…':'Add Photo'}<br/><small>${(r.photos||[]).length}/3</small></div>`:''}
           <input type="file" id="file-${it.id}" accept="image/*" multiple style="display:none" onchange="handleFiles(${it.id},this.files)" />
         </div>
       </div>
@@ -910,7 +979,7 @@ function renderAuditForm(host){
     </div>`;
 }
 function setPF(id, val, btn){
-  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:'',voiceBlob:null};
+  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:''};
   SESSION.responses[id].pass = val;
   document.getElementById('nextBtn').disabled = false;
   document.querySelectorAll('.pf').forEach(b=>b.classList.remove('on'));
@@ -919,28 +988,53 @@ function setPF(id, val, btn){
 function prevPoint(){ if(SESSION.idx>0){SESSION.idx--;renderAuditForm(document.getElementById('main'));} }
 function nextPoint(){ if(SESSION.idx<ITEMS.length-1){SESSION.idx++;renderAuditForm(document.getElementById('main'));} else go('audit-result'); }
 
-/* Image upload */
-function handleFiles(id, fileList){
-  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:'',voiceBlob:null};
-  const free = Math.max(0, 3 - SESSION.responses[id].photos.length);
-  const files = [...fileList].slice(0, free);
-  if(!files.length){ toast('Up to 3 photos'); return; }
-  let done = 0;
-  files.forEach(f => {
-    if(!/^image\//.test(f.type)){ done++; return; }
+/* Image upload — push to /api/upload (Drive) */
+function fileToDataURI(file){
+  return new Promise((resolve, reject) => {
     const r = new FileReader();
-    r.onload = e => {
-      SESSION.responses[id].photos.push({id:'img-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),url:e.target.result,name:f.name,size:f.size});
-      done++;
-      if(done===files.length){ renderAuditForm(document.getElementById('main')); toast('Photo added'); }
-    };
-    r.readAsDataURL(f);
+    r.onload = e => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
   });
+}
+async function handleFiles(id, fileList){
+  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:''};
+  const free = Math.max(0, 3 - SESSION.responses[id].photos.length);
+  const files = [...fileList].filter(f => /^image\//.test(f.type)).slice(0, free);
+  if(!files.length){ toast('Up to 3 photos'); return; }
+  SESSION.responses[id].uploading = true;
+  renderAuditForm(document.getElementById('main'));
+  for (const f of files) {
+    try {
+      const dataUri = await fileToDataURI(f);
+      const r = await api('POST', '/api/upload', {
+        fileData: dataUri,
+        fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_${id}_${Date.now()}_${f.name||'photo.jpg'}`,
+        mimeType: f.type || 'image/jpeg'
+      });
+      if (r && r.url) {
+        SESSION.responses[id].photos.push({ id:'img-'+Date.now(), url:r.url, fileId:r.fileId });
+      } else {
+        toast('Upload failed: ' + (r && r.error ? r.error : 'unknown'));
+      }
+    } catch (e) { toast('Upload failed: ' + e.message); }
+  }
+  SESSION.responses[id].uploading = false;
+  renderAuditForm(document.getElementById('main'));
+  toast('Photo added ✓');
 }
 function rmPhoto(id, idx){ SESSION.responses[id].photos.splice(idx,1); renderAuditForm(document.getElementById('main')); }
 
-/* Voice notes */
+/* Voice notes — record, then upload to /api/upload (Drive) */
 let _vrec=null,_vchunks=[],_vstream=null,_vtimer=null,_vstart=0,_vid=null;
+function blobToDataURI(blob){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
 async function toggleVoice(id){
   if(_vrec && _vid===id){ stopVoice(); return; }
   if(_vrec){ stopVoice(); }
@@ -950,15 +1044,31 @@ async function toggleVoice(id){
     _vchunks = []; _vid = id;
     _vrec = new MediaRecorder(_vstream);
     _vrec.ondataavailable = e => { if(e.data && e.data.size) _vchunks.push(e.data); };
-    _vrec.onstop = () => {
+    _vrec.onstop = async () => {
       const blob = new Blob(_vchunks, {type:_vrec.mimeType||'audio/webm'});
-      const url = URL.createObjectURL(blob);
-      SESSION.responses[id].voiceBlob = blob;
-      SESSION.responses[id].voiceUrl = url;
       _vstream.getTracks().forEach(t=>t.stop());
       _vrec=null;_vstream=null;_vid=null;clearInterval(_vtimer);_vtimer=null;
-      renderAuditForm(document.getElementById('main'));
-      toast('Voice note saved');
+      toast('Uploading voice…');
+      try {
+        const dataUri = await blobToDataURI(blob);
+        const r = await api('POST', '/api/upload', {
+          fileData: dataUri,
+          fileName: `voice_${CURRENT_USER.emp_code}_${SESSION.storeCode}_${id}_${Date.now()}.webm`,
+          mimeType: blob.type || 'audio/webm'
+        });
+        if (r && r.url) {
+          SESSION.responses[id].voiceUrl = r.url;
+          SESSION.responses[id].voiceFileId = r.fileId;
+          renderAuditForm(document.getElementById('main'));
+          toast('Voice note saved ✓');
+        } else {
+          renderAuditForm(document.getElementById('main'));
+          toast('Voice upload failed: ' + (r && r.error ? r.error : 'unknown'));
+        }
+      } catch (e) {
+        renderAuditForm(document.getElementById('main'));
+        toast('Voice upload failed: ' + e.message);
+      }
     };
     _vrec.start();
     _vstart = Date.now();
@@ -969,7 +1079,7 @@ async function toggleVoice(id){
   }catch(err){ toast('Microphone permission denied'); }
 }
 function stopVoice(){ if(_vrec && _vrec.state==='recording') _vrec.stop(); }
-function rmVoice(id){ if(SESSION.responses[id].voiceUrl) URL.revokeObjectURL(SESSION.responses[id].voiceUrl); SESSION.responses[id].voiceUrl=''; SESSION.responses[id].voiceBlob=null; renderAuditForm(document.getElementById('main')); }
+function rmVoice(id){ SESSION.responses[id].voiceUrl=''; SESSION.responses[id].voiceFileId=null; renderAuditForm(document.getElementById('main')); }
 
 /* Result */
 function gradeFor(pct){ return pct >= 80 ? 'Gold' : (pct >= 60 ? 'Silver' : 'Red'); }
@@ -1008,21 +1118,69 @@ function renderAuditResult(host){
     <div class="card"><h2>What next</h2><div class="sub">${grade==='Gold'?'🏆 Best Store eligible.':grade==='Silver'?'📋 Corrections required within 24 hours.':'🚨 Immediate intervention. Store Manager retraining required.'}</div></div>
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn ghost" onclick="go('submissions')">View Submissions</button>
-      <button class="btn" onclick="finishAudit(${pct},'${grade}',${pass})">Submit ✓</button>
+      <button class="btn" id="submitBtn" onclick="finishAudit(${pct},'${grade}',${pass})">Submit ✓</button>
     </div>`;
 }
-function finishAudit(pct, grade, pass){
+async function finishAudit(pct, grade, pass){
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
   const u = CURRENT_USER, store = STORES.find(s=>s.code===SESSION.storeCode);
-  const thumbs = []; const audios = [];
-  ITEMS.forEach(it => {
-    (SESSION.responses[it.id]?.photos||[]).forEach(p => thumbs.push(p.url));
-    if(SESSION.responses[it.id]?.voiceUrl) audios.push(SESSION.responses[it.id].voiceUrl);
+  if (!store) { toast('Store not selected'); if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='Submit ✓';} return; }
+
+  toast('Starting audit session…');
+
+  /* 1) Start session */
+  const startR = await api('POST', '/api/audits?action=start', {
+    storeCode: store.code,
+    storeName: store.name,
+    auditDate: SESSION.date,
+    managerName: store.manager || ''
   });
-  const id = 'A' + String(Date.now()).slice(-6);
-  const newSub = {id, date:SESSION.date, store_code:store.code, store_name:store.name, auditor_code:u.emp_code, auditor:u.emp_name, pass, total:ITEMS.length, pct, grade, thumbs:thumbs.slice(0,8), audio:audios.slice(0,3)};
-  const subs = getSubmissions(); subs.unshift(newSub); setSubmissions(subs);
-  SESSION.idx=0; SESSION.responses={}; SESSION.storeCode='';
-  toast('Audit submitted ✓');
+  if (!startR || !startR.success) {
+    toast('Failed to start audit: ' + (startR && startR.error ? startR.error : 'unknown'));
+    if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='Submit ✓';}
+    return;
+  }
+  const sessionId = startR.session.id;
+  SESSION.sessionId = sessionId;
+
+  /* 2) PATCH answers for each item.
+        Note: The backend's checklist_items table is auto-seeded; our ITEMS ids 1..25
+        must match the seed order. */
+  const thumbs = [], audios = [];
+  for (const it of ITEMS) {
+    const r = SESSION.responses[it.id] || {};
+    const status = r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending');
+    const photoUrls = (r.photos || []).map(p => p.url).filter(Boolean);
+    photoUrls.forEach(u => { if (thumbs.length < 8) thumbs.push(u); });
+    if (r.voiceUrl && audios.length < 3) audios.push(r.voiceUrl);
+
+    await api('PATCH', '/api/audits?action=answer', {
+      sessionId,
+      itemId: it.id,
+      status,
+      remarks: r.remarks || '',
+      responsibleName: '',
+      completedAt: r.pass === true ? new Date().toISOString() : '',
+      photoUrls
+    });
+  }
+
+  /* 3) Submit (also triggers Google Sheets append) */
+  const subR = await api('POST', '/api/audits?action=submit', {
+    sessionId,
+    managerName: store.manager || '',
+    thumbnailUrls: thumbs,
+    audioUrls: audios
+  });
+  if (!subR || !subR.success) {
+    toast('Submit failed: ' + (subR && subR.error ? subR.error : 'unknown'));
+    if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='Submit ✓';}
+    return;
+  }
+
+  SESSION.idx = 0; SESSION.responses = {}; SESSION.storeCode = ''; SESSION.sessionId = null;
+  toast(subR.sheetsAppended ? 'Audit submitted ✓ Sheet synced' : 'Audit submitted ✓');
   go('submissions');
 }
 
@@ -1030,41 +1188,63 @@ function finishAudit(pct, grade, pass){
    ║  SUBMISSIONS LIST & DETAIL                               ║
    ╚══════════════════════════════════════════════════════════╝ */
 let DETAIL_ID = null;
-function renderSubmissions(host){
+async function loadSubmissions(){
+  const r = await api('GET', '/api/audits?action=list&limit=200');
+  if (r && r.success && Array.isArray(r.sessions)) {
+    SUBMISSIONS_CACHE = r.sessions.map(s => ({
+      id: s.id,
+      date: s.audit_date,
+      store_code: s.store_code,
+      store_name: s.store_name,
+      auditor_code: s.conducted_by_code,
+      auditor: s.conducted_by_name || '',
+      pass: Number(s.done_count) || 0,
+      total: Number(s.total_items) || 0,
+      pct: Math.round(Number(s.compliance_pct) || 0),
+      grade: gradeFor(Number(s.compliance_pct) || 0),
+      thumbs: Array.isArray(s.thumbnail_urls) ? s.thumbnail_urls : [],
+      audio: Array.isArray(s.audio_urls) ? s.audio_urls : [],
+      submitted_at: s.submitted_at,
+      status: s.status
+    }));
+  } else {
+    SUBMISSIONS_CACHE = [];
+  }
+}
+async function renderSubmissions(host){
   const u = CURRENT_USER;
-  const all = getSubmissions();
-  const visible = isAdminish(u) ? all : all.filter(s => s.auditor_code === u.emp_code);
+  host.innerHTML = `
+    <h1>${isAdminish(u)?'All Submissions':'My Submissions'}</h1>
+    <div class="empty"><div class="ic">⏳</div><b>Loading…</b></div>`;
+  await loadSubmissions();
+  const visible = SUBMISSIONS_CACHE; /* server already scopes by role */
   host.innerHTML = `
     <h1>${isAdminish(u)?'All Submissions':'My Submissions'}</h1>
     <div class="hindi" style="margin-bottom:14px">${isAdminish(u)?'सभी सबमिशन':'मेरी सबमिशन'} · ${visible.length} total</div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <input type="date" id="fFrom" value="2026-04-01" onchange="renderSubmissions(document.getElementById('main'))" />
-      <input type="date" id="fTo"   value="${TODAY}"   onchange="renderSubmissions(document.getElementById('main'))" />
-    </div>
     ${visible.length===0 ? '<div class="empty"><div class="ic">📭</div><b>No submissions yet</b><p>Tap "Start New Audit" on Home.</p></div>' :
       visible.map(s => `
         <div class="submrow">
           <div class="head" onclick="DETAIL_ID='${s.id}';go('submission-detail')" style="cursor:pointer">
             <div class="gradedot ${s.grade}">${s.grade[0]}</div>
-            <div class="info"><b>${s.store_name}</b><small>${s.date} · ${s.auditor} · ${s.pass}/${s.total} passed</small></div>
+            <div class="info"><b>${s.store_name||'—'}</b><small>${s.date||''} · ${s.auditor||''} · ${s.pass}/${s.total} passed</small></div>
             <div class="pct">${s.pct}%</div>
           </div>
           ${s.thumbs.length || s.audio.length ? `<div class="thumbs">
-            ${s.thumbs.map(t => `<div class="th" onclick="openLightbox('${t}')"><img src="${t}" alt="" /></div>`).join('')}
+            ${s.thumbs.map(t => `<div class="th" onclick="event.stopPropagation();openLightbox('${t}')"><img src="${t}" alt="" /></div>`).join('')}
             ${s.audio.map(a => `<audio controls src="${a}" style="height:32px"></audio>`).join('')}
           </div>`:''}
         </div>`).join('')}
   `;
 }
 function renderSubmissionDetail(host){
-  const s = getSubmissions().find(x => x.id === DETAIL_ID);
+  const s = SUBMISSIONS_CACHE.find(x => x.id === DETAIL_ID);
   if(!s){ go('submissions'); return; }
   host.innerHTML = `
     <button class="btn ghost sm" onclick="go('submissions')" style="margin-bottom:10px;display:inline-flex">← Back</button>
     <div class="result-hero">
       <div class="ring" style="--p:${s.pct};--c:${s.grade==='Gold'?'#D4A64A':s.grade==='Silver'?'#9CAEC2':'#D23B3B'}"><div class="pct">${s.pct}%<small>${s.pass} / ${s.total}</small></div></div>
       <div style="margin:10px 0 4px"><span class="gradechip ${s.grade}">Grade ${s.grade}</span></div>
-      <div class="hindi">${s.store_name} · ${s.date}</div>
+      <div class="hindi">${s.store_name||''} · ${s.date||''}</div>
     </div>
     <div class="card">
       <h2>Audit details</h2>
@@ -1073,6 +1253,7 @@ function renderSubmissionDetail(host){
         <div><b>Auditor:</b> ${s.auditor} (${s.auditor_code})</div>
         <div><b>Store:</b> ${s.store_name} (${s.store_code})</div>
         <div><b>Date:</b> ${s.date}</div>
+        ${s.submitted_at?`<div><b>Submitted:</b> ${s.submitted_at}</div>`:''}
       </div>
     </div>
     ${s.thumbs.length ? `<div class="card"><h2>Photo evidence (${s.thumbs.length})</h2>
@@ -1092,26 +1273,23 @@ function renderSubmissionDetail(host){
    ╚══════════════════════════════════════════════════════════╝ */
 function renderMore(host){
   const u = CURRENT_USER;
-  const pw = getPwInfo(u.emp_code);
-  const days = Math.floor((Date.now()-pw.set_at)/86400000);
-  const left = Math.max(0, 60-days);
   host.innerHTML = `
     <h1>More</h1>
     <div class="hindi" style="margin-bottom:14px">और</div>
     ${canAccessAdmin(u) ? `
       <button class="bigbtn" onclick="go('admin')">
         <span class="ic" style="background:#FAF3E0;color:#7A5C18">🔒</span>
-        <div class="body"><div>Admin Panel</div><small>Emp 2266 · Manage employees</small></div>
+        <div class="body"><div>Admin Panel</div><small>${u.role} · Manage employees</small></div>
         <span class="arrow">›</span>
       </button>`:''}
     <button class="bigbtn" onclick="showModal('pwExpiryModal')">
       <span class="ic">🔑</span>
-      <div class="body"><div>Change Password</div><small>Expires in ${left} day${left===1?'':'s'} · last set ${days}d ago</small></div>
+      <div class="body"><div>Change Password</div><small>60-day expiry · last 3 passwords blocked</small></div>
       <span class="arrow">›</span>
     </button>
     <button class="bigbtn" onclick="showTCAgain()">
       <span class="ic">📋</span>
-      <div class="body"><div>Terms &amp; Conditions</div><small>Accepted ${getTC(u.emp_code)?'· ' + new Date((getTC(u.emp_code).accepted_at)||0).toISOString().slice(0,10):'(not yet)'}</small></div>
+      <div class="body"><div>Terms &amp; Conditions</div><small>Accepted on first login</small></div>
       <span class="arrow">›</span>
     </button>
     <button class="bigbtn" onclick="logout()">
@@ -1122,53 +1300,81 @@ function renderMore(host){
     <div class="card" style="margin-top:14px">
       <h2>Infrastructure</h2>
       <div class="sub" style="font-size:13px;line-height:1.7">
-        ✓ Custom domain <b>mb-requests.mbz.in</b><br/>
-        ✓ Node.js 20 LTS · @libsql/client 0.15.9<br/>
-        ✓ All API errors handled gracefully<br/>
-        ✓ Production-ready
+        ✓ Turso libSQL · audit-req DB<br/>
+        ✓ Google Drive photo & voice upload<br/>
+        ✓ Google Sheets one-row-per-submit append<br/>
+        ✓ Fast2SMS OTP for forgot password
       </div>
     </div>
     <div style="margin-top:14px;text-align:center;color:var(--mute);font-size:12px">Mbz Audit · ${TODAY} · v3</div>`;
 }
-function showTCAgain(){ document.getElementById('tcAccept').checked = !!getTC(CURRENT_USER.emp_code); showModal('tcModal'); }
+function showTCAgain(){ document.getElementById('tcAccept').checked = !!CURRENT_USER._tcAccepted; showModal('tcModal'); }
 
 /* ╔══════════════════════════════════════════════════════════╗
    ║  ADMIN PANEL                                             ║
    ╚══════════════════════════════════════════════════════════╝ */
-function renderAdmin(host){
+async function renderAdmin(host){
   if(!canAccessAdmin(CURRENT_USER)){
-    host.innerHTML = '<div class="empty"><div class="ic">🔒</div><b>Forbidden</b><p>Admin panel is restricted to Emp ID 2266.</p></div>';
+    host.innerHTML = '<div class="empty"><div class="ic">🔒</div><b>Forbidden</b><p>Admin panel is for admin / owner / manager roles.</p></div>';
     return;
   }
   host.innerHTML = `
     <div class="adminhead">
-      <div><h1>Admin Panel</h1><div class="hindi">${getEmployees().length} employees</div></div>
-      <span class="chip">Emp ${CURRENT_USER.emp_code}</span>
+      <div><h1>Admin Panel</h1><div class="hindi">Loading…</div></div>
+      <span class="chip">${CURRENT_USER.role} · ${CURRENT_USER.emp_code}</span>
+    </div>
+    <div class="empty"><div class="ic">⏳</div><b>Loading employees…</b></div>`;
+  await loadEmployees();
+  host.innerHTML = `
+    <div class="adminhead">
+      <div><h1>Admin Panel</h1><div class="hindi">${EMPLOYEES_CACHE.length} employees</div></div>
+      <span class="chip">${CURRENT_USER.role} · ${CURRENT_USER.emp_code}</span>
     </div>
     <div class="subtabs">
-      ${['employees','activity','settings'].map(t => `<button class="${t===ADMIN_TAB?'active':''}" onclick="ADMIN_TAB='${t}';renderAdmin(document.getElementById('main'))">${({employees:'Employees',activity:'Activity Log',settings:'Settings'})[t]}</button>`).join('')}
+      ${['employees','settings'].map(t => `<button class="${t===ADMIN_TAB?'active':''}" onclick="ADMIN_TAB='${t}';renderAdmin(document.getElementById('main'))">${({employees:'Employees',settings:'Settings'})[t]}</button>`).join('')}
     </div>
     <div id="adminPane"></div>`;
   if(ADMIN_TAB==='employees') renderAdminEmployees();
-  else if(ADMIN_TAB==='activity') renderAdminActivity();
   else if(ADMIN_TAB==='settings') renderAdminSettings();
 }
+
+async function loadEmployees(){
+  const r = await api('GET', '/api/admin?action=list-employees');
+  if (r && r.success && Array.isArray(r.employees)) {
+    EMPLOYEES_CACHE = r.employees.map(e => ({
+      emp_code: e.emp_code,
+      emp_name: e.emp_name,
+      emp_designation: e.emp_designation || '',
+      emp_mobile: e.emp_mobile || '',
+      store_code: e.store_code || '',
+      store_name: e.store_name || '',
+      role: e.role || 'employee',
+      active: e.store_status === 'Active'
+    }));
+  } else {
+    EMPLOYEES_CACHE = [];
+    if (r && r._authError) toast('Admin access requires role=admin');
+  }
+}
+
 function renderAdminEmployees(){
   document.getElementById('adminPane').innerHTML = `
+    ${!isAdmin(CURRENT_USER) ? '<div class="banner"><div class="ic">ℹ️</div><div><b>Read-only</b><div>Add / Deactivate / Reset actions require role: <code>admin</code>.</div></div></div>' : ''}
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <input id="empQ" placeholder="🔍 Search by Employee ID, name, store…" oninput="filterEmp(this.value)" />
-      <button class="btn sm" onclick="openAddEmp()">➕ Add</button>
+      ${isAdmin(CURRENT_USER) ? '<button class="btn sm" onclick="openAddEmp()">➕ Add</button>' : ''}
     </div>
     <div id="empRows"></div>`;
   filterEmp('');
 }
 function filterEmp(q){
   q = (q||'').toLowerCase().trim();
-  const rows = getEmployees().filter(e => !q || String(e.emp_code).includes(q) || e.emp_name.toLowerCase().includes(q) || (e.store_code||'').toLowerCase().includes(q) || (e.emp_designation||'').toLowerCase().includes(q));
+  const rows = EMPLOYEES_CACHE.filter(e => !q || String(e.emp_code).includes(q) || (e.emp_name||'').toLowerCase().includes(q) || (e.store_code||'').toLowerCase().includes(q) || (e.emp_designation||'').toLowerCase().includes(q));
   document.getElementById('empRows').innerHTML = rows.length === 0 ? '<div class="empty"><b>No matches</b><p>Try another keyword.</p></div>' :
     rows.map(e => {
       const av = (e.emp_name||'?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
       const isSelf = e.emp_code === CURRENT_USER.emp_code;
+      const canWrite = isAdmin(CURRENT_USER);
       return `
       <div class="emprow">
         <div class="av">${av}</div>
@@ -1177,22 +1383,24 @@ function filterEmp(q){
           <small>${e.emp_designation||'—'} · ${e.store_name||'—'} · role: ${e.role}</small>
         </div>
         <span class="stat ${e.active?'on':'off'}">${e.active?'Active':'Inactive'}</span>
-        <div class="actions" style="margin-top:8px;flex-basis:100%">
-          <button onclick="adminResetPw(${e.emp_code})">🔑 Reset PW</button>
-          ${e.active ?
-            `<button class="danger" onclick="adminToggle(${e.emp_code},false)" ${isSelf?'disabled':''}>🔴 Deactivate</button>` :
-            `<button class="warn"   onclick="adminToggle(${e.emp_code},true)">🟢 Activate</button>`}
-        </div>
-      </div>`}).join('') + `<div class="sub" style="margin-top:8px">${rows.length} of ${getEmployees().length} shown</div>`;
+        ${canWrite ? `
+          <div class="actions" style="margin-top:8px;flex-basis:100%">
+            <button onclick="adminResetPw(${e.emp_code})">🔑 Reset PW</button>
+            ${e.active ?
+              `<button class="danger" onclick="adminToggle(${e.emp_code},false)" ${isSelf?'disabled':''}>🔴 Deactivate</button>` :
+              `<button class="warn"   onclick="adminToggle(${e.emp_code},true)">🟢 Activate</button>`}
+          </div>` : ''}
+      </div>`}).join('') + `<div class="sub" style="margin-top:8px">${rows.length} of ${EMPLOYEES_CACHE.length} shown</div>`;
 }
 function openAddEmp(){
-  document.getElementById('newEmpStore').innerHTML = STORES.map(s=>`<option value="${s.code}">${s.name} (${s.code})</option>`).join('');
+  if (!isAdmin(CURRENT_USER)) { toast('Only admin role can add employees'); return; }
+  document.getElementById('newEmpStore').innerHTML = STORES.map(s=>`<option value="${s.code}">${s.name||s.code} (${s.code})</option>`).join('');
   document.getElementById('newEmpCode').value='';
   document.getElementById('newEmpName').value='';
   document.getElementById('newEmpMobile').value='';
   showModal('addEmpModal');
 }
-function adminAddEmployee(){
+async function adminAddEmployee(){
   const code = parseInt(document.getElementById('newEmpCode').value,10);
   const name = document.getElementById('newEmpName').value.trim();
   const mobile = document.getElementById('newEmpMobile').value.trim();
@@ -1200,41 +1408,37 @@ function adminAddEmployee(){
   const storeCode = document.getElementById('newEmpStore').value;
   const role = document.getElementById('newEmpRole').value;
   if(!code || !name){ toast('Employee ID and Name are required'); return; }
-  const all = getEmployees();
-  if(all.find(e=>e.emp_code===code)){ toast('Employee ID already exists'); return; }
   const store = STORES.find(s=>s.code===storeCode);
-  const newEmp = {emp_code:code, emp_name:name, emp_mobile:mobile, emp_designation:desig, hod:CURRENT_USER.hod||'Samarendra', store_code:storeCode, store_name:store?store.name:'', role:role, active:true};
-  all.push(newEmp); setEmployees(all);
-  const initialPw = 'MB@'+code;
-  setPwInfo(code, {set_at:Date.now(), history:[initialPw]});
+  const initialPassword = 'MB@'+code;
+  const r = await api('POST', '/api/admin?action=add-employee', {
+    empCode: code,
+    empName: name,
+    empDesignation: desig,
+    empMobile: mobile,
+    storeCode: storeCode,
+    storeName: store?store.name:'',
+    role: role,
+    initialPassword
+  });
+  if (!r.success) { toast(r.error || 'Failed'); return; }
+  await loadEmployees();
   hideModal('addEmpModal');
-  toast(`Created ${name} (${code}) · Initial password: ${initialPw}`);
+  toast(`Created ${name} (${code}) · Initial password: ${initialPassword}`);
   filterEmp('');
 }
-function adminToggle(code, active){
-  const all = getEmployees(); const e = all.find(x => x.emp_code === code);
-  if(!e) return;
-  e.active = active;
-  setEmployees(all);
+async function adminToggle(code, active){
+  const r = await api('POST', '/api/admin?action=toggle-status', { empCode: code, status: active ? 'Active' : 'Inactive' });
+  if (!r.success) { toast(r.error || 'Failed'); return; }
+  await loadEmployees();
   filterEmp(document.getElementById('empQ').value);
-  toast(`${e.emp_name} ${active?'activated 🟢':'deactivated 🔴'}`);
+  toast(`${active?'Activated 🟢':'Deactivated 🔴'}`);
 }
-function adminResetPw(code){
-  const e = getEmployees().find(x=>x.emp_code===code); if(!e) return;
-  const newPw = 'MB@'+code+'-'+Math.random().toString(36).slice(2,5);
-  const pw = getPwInfo(code);
-  pw.history = [...pw.history, newPw].slice(-5);
-  pw.set_at = Date.now();
-  setPwInfo(code, pw);
-  toast(`Password reset for ${e.emp_name}. Temp password: ${newPw}`);
-}
-function renderAdminActivity(){
-  document.getElementById('adminPane').innerHTML = `
-    <div class="sub" style="margin-bottom:10px">Last admin actions on this device (mock — Phase 3 reads from <code>admin_activity_log</code> table)</div>
-    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>create_employee · target: Priya Sharma (801) · 2 days ago</small></div></div>
-    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>reset_password · target: Geeta Jha (35) · 3 days ago</small></div></div>
-    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>deactivate · target: Sunita Kapoor (803) · 5 days ago</small></div></div>
-    <div class="emprow"><div class="av">M</div><div class="info"><b>Manoj Kumar</b><small>role_change · target: Risabh Mishra (2253) · employee → manager · 1 week ago</small></div></div>`;
+async function adminResetPw(code){
+  if (!confirm('Reset password for employee '+code+'?')) return;
+  const newPassword = 'MB@'+code+'-'+Math.random().toString(36).slice(2,5);
+  const r = await api('POST', '/api/admin?action=reset-password', { empCode: code, newPassword });
+  if (!r.success) { toast(r.error || 'Failed'); return; }
+  toast(`Password reset · Temp: ${newPassword}`);
 }
 function renderAdminSettings(){
   document.getElementById('adminPane').innerHTML = `
@@ -1243,21 +1447,26 @@ function renderAdminSettings(){
     </div>
     <div class="card"><h2>Roles</h2>
       <div class="sub" style="line-height:1.7">
-        <b>admin</b> — Emp 2266 only · sees Admin Panel<br/>
-        <b>owner</b> · <b>manager</b> — see "All Submissions"<br/>
+        <b>admin</b> — full Admin Panel access<br/>
+        <b>owner</b> · <b>manager</b> — view Admin Panel (read-only) and see "All Submissions"<br/>
         <b>employee</b> — sees only own submissions
       </div>
+      <div class="codebox" style="margin-top:8px">PRIVILEGED_ROLES = ${JSON.stringify(PRIVILEGED_ROLES)}</div>
     </div>
-    <div class="card"><h2>Reset demo data</h2>
-      <div class="sub">Restore the demo to its starting state (clears localStorage).</div>
-      <div style="margin-top:10px"><button class="btn danger" onclick="if(confirm('Reset all demo data?')){localStorage.clear();location.reload();}">Reset everything</button></div>
+    <div class="card"><h2>Integrations</h2>
+      <div class="sub" style="line-height:1.7">
+        ✓ Turso libSQL · audit-req DB<br/>
+        ✓ Google Drive · photos &amp; voice<br/>
+        ✓ Google Sheets · 1 row per submit<br/>
+        ✓ Fast2SMS · OTP delivery
+      </div>
     </div>`;
 }
 
 /* ╔══════════════════════════════════════════════════════════╗
    ║  BOOT                                                    ║
    ╚══════════════════════════════════════════════════════════╝ */
-(function init(){
+(async function init(){
   // Wire OTP grid auto-advance
   document.querySelectorAll('#otpStep2 .otp-grid input').forEach((inp, i, list) => {
     inp.addEventListener('input', e => {
@@ -1275,7 +1484,7 @@ function renderAdminSettings(){
     }
   });
   // Auto-login via Remember Me
-  if(checkRememberMe()) return;
+  await checkRememberMe();
 })();
 </script>
 </body>
