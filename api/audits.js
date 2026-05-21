@@ -223,6 +223,61 @@ module.exports = async (req, res) => {
     });
   }
 
+  /* ── POST ?action=answer-batch — write all answers in 1 round trip ── */
+  if (action === 'answer-batch' && req.method === 'POST') {
+    const { sessionId, answers } = req.body || {};
+    if (!sessionId || !Array.isArray(answers) || !answers.length) {
+      return res.json({ success: false, error: 'sessionId and answers[] required' });
+    }
+    const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [sessionId] });
+    if (!s.rows.length) return res.json({ success: false, error: 'Session not found' });
+    const session = s.rows[0];
+    const own = Number(session.conducted_by_code) === Number(user.empCode);
+    const privileged = user.role === 'admin' || user.role === 'manager';
+    if (!own && !privileged) return res.status(403).json({ success: false, error: 'Forbidden' });
+
+    const now = nowIST();
+    const validStatuses = ['Done','Yes','No','Not Done','Pending','NA'];
+    const stmts = [];
+    for (const a of answers) {
+      if (!a || a.itemId == null) continue;
+      const safeStatus = validStatuses.includes(a.status) ? a.status : 'Pending';
+      const photosJson = JSON.stringify(Array.isArray(a.photoUrls) ? a.photoUrls : []);
+      stmts.push({
+        sql: `INSERT INTO audit_answers
+              (session_id, item_id, status, remarks, responsible_name, completed_at, photo_urls, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(session_id, item_id) DO UPDATE SET
+                status = excluded.status,
+                remarks = excluded.remarks,
+                responsible_name = excluded.responsible_name,
+                completed_at = excluded.completed_at,
+                photo_urls = excluded.photo_urls,
+                updated_at = excluded.updated_at`,
+        args: [sessionId, Number(a.itemId), safeStatus, a.remarks || '',
+               a.responsibleName || '', a.completedAt || '', photosJson, now]
+      });
+    }
+    if (stmts.length) await db.batch(stmts, 'write');
+
+    /* Roll up counts once at the end */
+    const ar = await db.execute({
+      sql: 'SELECT status FROM audit_answers WHERE session_id = ?', args: [sessionId]
+    });
+    const { done, pend, notDone, pct } = recalc(session, ar.rows);
+    await db.execute({
+      sql: 'UPDATE audit_sessions SET done_count = ?, pending_count = ?, not_done_count = ?, compliance_pct = ? WHERE id = ?',
+      args: [done, pend, notDone, pct, sessionId]
+    });
+
+    const updated = await loadSessionRow(db, sessionId);
+    return res.json({
+      success: true,
+      written: stmts.length,
+      session: updated ? mapSession(updated) : null
+    });
+  }
+
   /* ── POST ?action=submit — close session ───────────────── */
   if (action === 'submit' && req.method === 'POST') {
     const { sessionId, managerName, thumbnailUrls, audioUrls } = req.body || {};

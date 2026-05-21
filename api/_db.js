@@ -13,9 +13,21 @@ function getDB() {
 
 /* ══════════════════════════════════════════════════════════════
    Schema bootstrap - identical auth tables as Customer_Req_App,
-   plus the audit-domain tables.
+   plus the audit-domain tables. Memoized per cold start: the CREATE
+   TABLE / ALTER TABLE / seed work only runs once per Lambda instance,
+   not on every request. This is the single biggest latency win.
 ════════════════════════════════════════════════════════════════ */
-async function ensureTable() {
+let _schemaReadyPromise = null;
+function ensureTable() {
+  if (!_schemaReadyPromise) _schemaReadyPromise = _doEnsureTable().catch(err => {
+    /* On failure, allow retry on next request */
+    _schemaReadyPromise = null;
+    throw err;
+  });
+  return _schemaReadyPromise;
+}
+
+async function _doEnsureTable() {
   const d = getDB();
 
   /* ── Auth (kept identical to Customer_Req_App) ─────────────── */

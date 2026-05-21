@@ -10,6 +10,9 @@ module.exports = async (req, res) => {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  /* Cache the store list — it changes rarely. Public for browser, s-maxage for Vercel edge. */
+  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+
   await ensureTable();
   const db = getDB();
 

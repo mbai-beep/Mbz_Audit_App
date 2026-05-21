@@ -27,12 +27,9 @@
 
   .frame{max-width:520px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:88px}
 
-  /* ───── MBZ.IN logo (matches reference) ───── */
-  .brand-mbz{display:flex;flex-direction:column;align-items:center;gap:0;margin:14px 0 8px}
-  .brand-mbz .mbz{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:54px;font-weight:300;color:#5a5a5a;letter-spacing:-3px;line-height:1}
-  .brand-mbz .mbz .in{color:#1a1a1a;font-weight:400}
-  .brand-mbz .mbz .dot{color:var(--magenta);font-weight:900;font-style:normal}
-  .brand-mbz .meena-logo{display:block;height:40px;width:auto;max-width:80vw;object-fit:contain;margin-top:2px}
+  /* ───── Meena Bazaar wordmark ───── */
+  .brand-mbz{display:flex;flex-direction:column;align-items:center;gap:0;margin:18px 0 10px}
+  .brand-mbz .meena-logo{display:block;height:72px;width:auto;max-width:82vw;object-fit:contain}
 
   /* ───── Login ───── */
   .login{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 22px;background:linear-gradient(180deg,#F5FAFE,#E3F2FD)}
@@ -59,13 +56,12 @@
   .login .footnote{font-size:11px;color:var(--mute);text-align:center;margin-top:14px}
 
   /* ───── App shell ───── */
-  .topbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#8DBBCC,#7FB2C5);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(31,51,73,.10)}
-  .topbar .logo{display:flex;align-items:center;gap:10px;flex:1}
-  .topbar .logo .mark{width:38px;height:38px;border-radius:10px;background:#fff;display:grid;place-items:center;font-family:Georgia,serif;font-style:italic;color:#5a5a5a;font-size:16px;font-weight:300;letter-spacing:-1px}
-  .topbar .logo .mark .dot{color:var(--magenta);font-style:normal;font-weight:900}
-  .topbar .logo b{font-size:16px;display:block}
+  .topbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#8DBBCC,#7FB2C5);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(31,51,73,.10)}
+  .topbar .logo{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+  .topbar .topbar-logo{height:36px;width:auto;max-width:170px;object-fit:contain;background:#fff;border-radius:8px;padding:4px 8px}
+  .topbar .logo b{font-size:15px;display:block;line-height:1.2}
   .topbar .logo small{display:block;font-size:11px;opacity:.85}
-  .topbar .icon{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.12);display:grid;place-items:center;border:0;color:#fff;font-size:18px}
+  .topbar .icon{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.12);display:grid;place-items:center;border:0;color:#fff;font-size:18px;flex-shrink:0}
   .topbar .icon:active{background:rgba(255,255,255,.22)}
 
   .userstrip{padding:12px 16px;background:linear-gradient(180deg,#fff,#F5FAFE);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
@@ -105,12 +101,12 @@
   .bigbtn.brand .body small{color:rgba(255,255,255,.9)}
   .bigbtn.brand .arrow{color:rgba(255,255,255,.9)}
 
-  /* Store tiles */
-  .stores{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
-  .storetile{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;text-align:left;cursor:pointer}
-  .storetile:active{border-color:var(--brand);background:var(--brand-soft)}
-  .storetile b{display:block;font-size:14px}
-  .storetile small{font-size:12px;color:var(--ink2);display:block;margin-top:2px}
+  /* Store selector */
+  .store-select-wrap{margin-top:8px}
+  .store-select{width:100%;padding:14px;font-size:15px;font-weight:600;border:1.5px solid var(--line2);border-radius:12px;background:#fff;color:var(--ink);appearance:menulist}
+  .store-info-card{margin-top:12px;padding:14px;background:#fff;border:1.5px solid var(--line);border-radius:12px}
+  .store-info-card b{display:block;font-size:16px;color:var(--ink)}
+  .store-info-card small{display:block;font-size:13px;color:var(--ink2);margin-top:4px;line-height:1.5}
 
   /* Audit progress */
   .progress{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:6px 0 14px}
@@ -285,7 +281,6 @@
 <!-- ═══════════════════ LOGIN VIEW ═══════════════════ -->
 <section id="loginView" class="login">
   <div class="brand-mbz">
-    <span class="mbz">MBZ<span class="dot">.</span><span class="in">IN</span></span>
     <img class="meena-logo" src="/meena_bazaar_logo.png" alt="Meena Bazaar" />
   </div>
 
@@ -327,8 +322,8 @@
 <section id="appShell" class="frame" style="display:none">
   <header class="topbar">
     <div class="logo">
-      <span class="mark"><span>MBZ</span><span class="dot">.</span></span>
-      <div><b>Store Audit</b><small>Meena Bazaar</small></div>
+      <img class="topbar-logo" src="/meena_bazaar_logo.png" alt="Meena Bazaar" />
+      <div><b>Store Audit</b><small>Field Employee Portal</small></div>
     </div>
     <button class="icon" onclick="logout()" title="Sign out">⏻</button>
   </header>
@@ -897,27 +892,56 @@ function renderAuditStart(host){
     loadStores().then(()=>renderAuditStart(host));
     return;
   }
+  /* Sort ascending by store_code for the dropdown */
+  const sorted = STORES.slice().sort((a,b) => String(a.code||'').localeCompare(String(b.code||''), undefined, {numeric:true}));
+  const options = sorted.map(s => {
+    const label = `${s.code} — ${s.name || ''}${s.city ? ' · ' + s.city : ''}`;
+    const safeCode = String(s.code||'').replace(/"/g,'&quot;');
+    return `<option value="${safeCode}">${label.replace(/</g,'&lt;')}</option>`;
+  }).join('');
+
   host.innerHTML = `
     <h1>Pick a store</h1>
     <div class="hindi" style="margin-bottom:10px">कौन-सी दुकान?</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px"><input id="storeQ" placeholder="Search store / दुकान खोजें" oninput="filterStores(this.value)" /></div>
-    <div class="stores" id="storeList"></div>
+    <div class="store-select-wrap">
+      <label class="sub" style="display:block;font-weight:700;margin-bottom:6px">Store (${sorted.length} total)</label>
+      <select class="store-select" id="storeSelect" onchange="pickStorePreview(this.value)">
+        <option value="">— Select a store —</option>
+        ${options}
+      </select>
+      <div id="storePreview"></div>
+    </div>
     <div style="margin-top:16px">
-      <label class="sub">Audit date</label>
+      <label class="sub" style="display:block;font-weight:700;margin-bottom:6px">Audit date</label>
       <input type="date" value="${SESSION.date}" onchange="SESSION.date=this.value" />
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn" id="startAuditBtn" disabled onclick="startAuditFromDropdown()">Start Audit →</button>
     </div>`;
-  filterStores('');
+  if (SESSION.storeCode) {
+    const sel = document.getElementById('storeSelect');
+    if (sel) sel.value = SESSION.storeCode;
+    pickStorePreview(SESSION.storeCode);
+  }
 }
-function filterStores(q){
-  q = (q||'').toLowerCase().trim();
-  const list = STORES.filter(s => !q || (s.code||'').toLowerCase().includes(q) || (s.name||'').toLowerCase().includes(q) || (s.city||'').toLowerCase().includes(q));
-  document.getElementById('storeList').innerHTML = list.length === 0 ? '<div class="empty"><b>No stores</b><p>Adjust the search.</p></div>' : list.map(s => {
-    const safeCode = String(s.code||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<button class="storetile" onclick="pickStore('${safeCode}')">
-      <b>${s.name||'—'}</b><small>${s.code} · ${s.city||''}</small>
-      ${s.manager?`<small style="color:var(--brand);font-weight:700;margin-top:4px">SM: ${s.manager}</small>`:''}
-    </button>`;
-  }).join('');
+function pickStorePreview(code){
+  const previewEl = document.getElementById('storePreview');
+  const btn = document.getElementById('startAuditBtn');
+  if (!code) { previewEl.innerHTML = ''; if(btn) btn.disabled = true; return; }
+  const s = STORES.find(x => x.code === code);
+  if (!s) { previewEl.innerHTML = ''; if(btn) btn.disabled = true; return; }
+  previewEl.innerHTML = `
+    <div class="store-info-card">
+      <b>${s.name || '—'}</b>
+      <small><b>Code:</b> ${s.code}${s.city?' · <b>City:</b> '+s.city:''}${s.locality?' · '+s.locality:''}</small>
+      ${s.manager ? `<small style="color:var(--brand);font-weight:700">Store Manager: ${s.manager}</small>` : ''}
+    </div>`;
+  if (btn) btn.disabled = false;
+}
+function startAuditFromDropdown(){
+  const sel = document.getElementById('storeSelect');
+  if (!sel || !sel.value) { toast('Pick a store first'); return; }
+  pickStore(sel.value);
 }
 function pickStore(code){
   SESSION.storeCode = code;
@@ -1004,7 +1028,8 @@ async function handleFiles(id, fileList){
   if(!files.length){ toast('Up to 3 photos'); return; }
   SESSION.responses[id].uploading = true;
   renderAuditForm(document.getElementById('main'));
-  for (const f of files) {
+  /* Parallel upload — Promise.all is dramatically faster than sequential for 2-3 photos */
+  const results = await Promise.all(files.map(async f => {
     try {
       const dataUri = await fileToDataURI(f);
       const r = await api('POST', '/api/upload', {
@@ -1012,16 +1037,17 @@ async function handleFiles(id, fileList){
         fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_${id}_${Date.now()}_${f.name||'photo.jpg'}`,
         mimeType: f.type || 'image/jpeg'
       });
-      if (r && r.url) {
-        SESSION.responses[id].photos.push({ id:'img-'+Date.now(), url:r.url, fileId:r.fileId });
-      } else {
-        toast('Upload failed: ' + (r && r.error ? r.error : 'unknown'));
-      }
-    } catch (e) { toast('Upload failed: ' + e.message); }
+      return r && r.url ? { ok:true, url:r.url, fileId:r.fileId } : { ok:false, err:(r&&r.error)||'unknown' };
+    } catch (e) { return { ok:false, err:e.message }; }
+  }));
+  let added = 0, failed = 0;
+  for (const r of results) {
+    if (r.ok) { SESSION.responses[id].photos.push({ id:'img-'+Date.now()+'-'+Math.random().toString(36).slice(2,5), url:r.url, fileId:r.fileId }); added++; }
+    else failed++;
   }
   SESSION.responses[id].uploading = false;
   renderAuditForm(document.getElementById('main'));
-  toast('Photo added ✓');
+  if (failed) toast(`${added} added · ${failed} failed`); else toast(`${added} photo${added>1?'s':''} added ✓`);
 }
 function rmPhoto(id, idx){ SESSION.responses[id].photos.splice(idx,1); renderAuditForm(document.getElementById('main')); }
 
@@ -1144,26 +1170,28 @@ async function finishAudit(pct, grade, pass){
   const sessionId = startR.session.id;
   SESSION.sessionId = sessionId;
 
-  /* 2) PATCH answers for each item.
-        Note: The backend's checklist_items table is auto-seeded; our ITEMS ids 1..25
-        must match the seed order. */
+  /* 2) Batch all 25 answers into a single round trip (huge win at 90 concurrent users).
+        Backend's checklist_items table is auto-seeded; ITEMS.id 1..25 maps to seed order. */
   const thumbs = [], audios = [];
-  for (const it of ITEMS) {
+  const answers = ITEMS.map(it => {
     const r = SESSION.responses[it.id] || {};
-    const status = r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending');
     const photoUrls = (r.photos || []).map(p => p.url).filter(Boolean);
     photoUrls.forEach(u => { if (thumbs.length < 8) thumbs.push(u); });
     if (r.voiceUrl && audios.length < 3) audios.push(r.voiceUrl);
-
-    await api('PATCH', '/api/audits?action=answer', {
-      sessionId,
+    return {
       itemId: it.id,
-      status,
+      status: r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending'),
       remarks: r.remarks || '',
       responsibleName: '',
       completedAt: r.pass === true ? new Date().toISOString() : '',
       photoUrls
-    });
+    };
+  });
+  const batchR = await api('POST', '/api/audits?action=answer-batch', { sessionId, answers });
+  if (!batchR || !batchR.success) {
+    toast('Save answers failed: ' + (batchR && batchR.error ? batchR.error : 'unknown'));
+    if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='Submit ✓';}
+    return;
   }
 
   /* 3) Submit (also triggers Google Sheets append) */
