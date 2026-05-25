@@ -62,6 +62,38 @@ module.exports = async (req, res) => {
     return res.json({ success: true, employees: result.rows });
   }
 
+  // ── GET search employees (lazy, capped at 50) ─────────────
+  // Backs the Admin Panel's search-driven UI so the app NEVER
+  // bulk-loads every employee on open. Empty q returns []
+  // (panel shows a "type to search" empty state).
+  if (action === 'search-employees') {
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.json({ success: true, employees: [] });
+    const numeric = /^\d+$/.test(q);
+    const like = `%${q}%`;
+    /* Numeric query → also try exact emp_code match (fast indexed path). */
+    const sql = `
+      SELECT e.emp_code, e.emp_name, e.emp_designation, e.emp_mobile,
+             e.store_name, e.store_code, e.store_status, e.role,
+             COALESCE(a.is_first_login, 1) AS is_first_login,
+             a.password_changed_at, COALESCE(a.tc_accepted, 0) AS tc_accepted
+      FROM employees e
+      LEFT JOIN employee_auth a ON e.emp_code = a.emp_code
+      WHERE ${numeric ? 'CAST(e.emp_code AS TEXT) LIKE ? OR ' : ''}
+            e.emp_name LIKE ? OR
+            e.store_code LIKE ? OR
+            e.store_name LIKE ? OR
+            e.emp_designation LIKE ?
+      ORDER BY
+        ${numeric ? 'CASE WHEN CAST(e.emp_code AS TEXT) = ? THEN 0 ELSE 1 END,' : ''}
+        e.emp_name ASC
+      LIMIT 50
+    `;
+    const args = numeric ? [like, like, like, like, like, q] : [like, like, like, like];
+    const result = await db.execute({ sql, args });
+    return res.json({ success: true, employees: result.rows, capped: result.rows.length === 50 });
+  }
+
   // ── POST add new employee ─────────────────────────────────
   if (action === 'add-employee' && req.method === 'POST') {
     const { empCode, empName, empDesignation, empMobile, storeCode, storeName, role, initialPassword } = req.body || {};
