@@ -312,7 +312,7 @@
         <a href="#" onclick="showModal('otpModal');showOtpStep(1);return false">Forgot Password?</a>
       </div>
 
-      <button class="signin" onclick="doLogin()">Sign In</button>
+      <button class="signin" id="signInBtn" onclick="doLogin()">Sign In</button>
       <div class="footnote">Mbz Audit · v3 · Field Employee App</div>
     </div>
   </div>
@@ -609,35 +609,57 @@ async function doLogin(){
   if(!code){ toast('Enter Employee ID'); return; }
   if(!pw){   toast('Enter password');     return; }
 
-  const r = await api('POST', '/api/auth?action=login', { empCode: code, password: pw, remember }, { noAuth:true });
-  if(!r || !r.success){ toast(r && r.error ? r.error : 'Login failed'); return; }
-
-  API_TOKEN = r.token;
-  if (remember) {
-    localStorage.setItem(TOKEN_KEY, API_TOKEN);
-    sessionStorage.removeItem(TOKEN_KEY);
-  } else {
-    sessionStorage.setItem(TOKEN_KEY, API_TOKEN);
-    localStorage.removeItem(TOKEN_KEY);
+  /* ── Show "Signing in..." feedback on the button (matches Store Maintenance App) ── */
+  const signInBtn = document.getElementById('signInBtn');
+  const _signInOriginalText = signInBtn ? signInBtn.textContent : 'Sign In';
+  if (signInBtn) {
+    signInBtn.disabled = true;
+    signInBtn.textContent = 'Signing in...';
+    signInBtn.style.opacity = '0.85';
   }
 
-  CURRENT_USER = {
-    emp_code: r.employee.empCode,
-    emp_name: r.employee.empName,
-    emp_designation: r.employee.designation || '',
-    emp_mobile: r.employee.mobile || '',
-    hod: r.employee.hod || '',
-    store_code: r.employee.storeCode || '',
-    store_name: r.employee.storeName || '',
-    role: r.employee.role || 'employee',
-    active: true,
-    _passwordExpired: !!r.passwordExpired,
-    _tcAccepted: !!r.tcAccepted,
-    _isFirstLogin: !!r.employee.isFirstLogin
-  };
+  try {
+    const r = await api('POST', '/api/auth?action=login', { empCode: code, password: pw, remember }, { noAuth:true });
+    if(!r || !r.success){
+      toast(r && r.error ? r.error : 'Login failed');
+      if (signInBtn) { signInBtn.disabled = false; signInBtn.textContent = _signInOriginalText; signInBtn.style.opacity = ''; }
+      return;
+    }
 
-  await loadStores();
-  postLogin();
+    API_TOKEN = r.token;
+    if (remember) {
+      localStorage.setItem(TOKEN_KEY, API_TOKEN);
+      sessionStorage.removeItem(TOKEN_KEY);
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, API_TOKEN);
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    CURRENT_USER = {
+      emp_code: r.employee.empCode,
+      emp_name: r.employee.empName,
+      emp_designation: r.employee.designation || '',
+      emp_mobile: r.employee.mobile || '',
+      hod: r.employee.hod || '',
+      store_code: r.employee.storeCode || '',
+      store_name: r.employee.storeName || '',
+      role: r.employee.role || 'employee',
+      active: true,
+      _passwordExpired: !!r.passwordExpired,
+      _tcAccepted: !!r.tcAccepted,
+      _isFirstLogin: !!r.employee.isFirstLogin
+    };
+
+    await loadStores();
+    postLogin();
+  } finally {
+    /* Restore button state (in case user returns to login view, e.g. after T&C cancel) */
+    if (signInBtn) {
+      signInBtn.disabled = false;
+      signInBtn.textContent = _signInOriginalText;
+      signInBtn.style.opacity = '';
+    }
+  }
 }
 
 function postLogin(){
@@ -1388,10 +1410,22 @@ async function loadEmployees(){
 function renderAdminEmployees(){
   document.getElementById('adminPane').innerHTML = `
     ${!isAdmin(CURRENT_USER) ? '<div class="banner"><div class="ic">ℹ️</div><div><b>Read-only</b><div>Add / Deactivate / Reset actions require role: <code>admin</code>.</div></div></div>' : ''}
-    <div style="display:flex;gap:8px;margin-bottom:10px">
+
+    ${isAdmin(CURRENT_USER) ? `
+      <!-- Add New Employee — prominent admin-only CTA -->
+      <button class="bigbtn brand" onclick="openAddEmp()" style="margin-bottom:12px">
+        <span class="ic">➕</span>
+        <div class="body"><div>Add New Employee</div><small>Create a new account · admin only</small></div>
+        <span class="arrow">›</span>
+      </button>` : ''}
+
+    <!-- Search Employee ID -->
+    <div class="card" style="padding:14px;margin-bottom:12px">
+      <label style="display:block;font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px">Search Employee</label>
       <input id="empQ" placeholder="🔍 Search by Employee ID, name, store…" oninput="filterEmp(this.value)" />
-      ${isAdmin(CURRENT_USER) ? '<button class="btn sm" onclick="openAddEmp()">➕ Add</button>' : ''}
+      <div class="hint" style="font-size:12px;color:var(--mute);margin-top:6px">Type any Employee ID, name, store code, or designation</div>
     </div>
+
     <div id="empRows"></div>`;
   filterEmp('');
 }
