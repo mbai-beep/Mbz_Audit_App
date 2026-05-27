@@ -92,12 +92,30 @@ module.exports = async (req, res) => {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  /* ─────────────────────────────────────────────────────────────
+     Wrap the whole handler so any unexpected throw is logged and
+     returned as JSON (instead of a bare 500 with no body). This is
+     what was producing "Bad response (status 500)" on the client.
+  ───────────────────────────────────────────────────────────────── */
+  try {
+    return await handle(req, res);
+  } catch (err) {
+    console.error('[audits] unhandled error:', err && err.stack ? err.stack : err);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error: ' + (err && err.message ? err.message : 'unknown'),
+      action: req.query && req.query.action
+    });
+  }
+};
+
+async function handle(req, res) {
   await ensureTable();
   const db = getDB();
 
   let user;
   try { user = getUser(req); }
-  catch { return res.status(401).json({ error: 'Unauthorized' }); }
+  catch { return res.status(401).json({ success: false, error: 'Unauthorized' }); }
 
   const { action } = req.query;
 
@@ -352,5 +370,5 @@ module.exports = async (req, res) => {
     return res.json({ success: true, sessions: r.rows.map(mapSession) });
   }
 
-  return res.status(400).json({ error: 'Invalid action' });
-};
+  return res.status(400).json({ success: false, error: 'Invalid action: ' + action });
+}

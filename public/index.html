@@ -132,19 +132,7 @@
   .photoslot .ph img{width:100%;height:100%;object-fit:cover;display:block}
   .photoslot .ph .x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;background:#fff;border:1.5px solid var(--line2);color:var(--ink);display:grid;place-items:center;font-size:14px;cursor:pointer;z-index:2}
 
-  .voicebox{margin:8px 18px 0;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;background:#fff;display:flex;flex-direction:column;gap:8px}
-  .voicebox .vhead{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--ink2);font-weight:600}
-  .voicebox .vhead b{color:var(--ink)}
-  .voicebox .recbtn{display:flex;align-items:center;gap:10px;padding:14px;border-radius:12px;border:0;width:100%;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:15px;cursor:pointer}
-  .voicebox .recbtn.live{background:#FCE8E8;color:var(--bad);animation:pulse 1.2s infinite}
-  .voicebox .recbtn .dot{width:14px;height:14px;border-radius:50%;background:currentColor}
-  .voicebox audio{width:100%;outline:none}
-  .voicebox .vrow{display:flex;gap:8px;align-items:center}
-  .voicebox .vrow audio{flex:1}
-  .voicebox .vrow button{padding:8px 12px;font-size:13px;border-radius:8px;background:#fff;border:1.5px solid var(--line2);color:var(--ink);font-weight:600;cursor:pointer}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(210,59,59,.4)}70%{box-shadow:0 0 0 10px rgba(210,59,59,0)}100%{box-shadow:0 0 0 0 rgba(210,59,59,0)}}
-
-  /* PASS / FAIL buttons (2-state per new framework) */
+  /* YES / NO buttons (2-state per new framework — previously PASS / FAIL) */
   .pfrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 14px 14px}
   .pf{padding:18px 8px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:6px}
   .pf .em{font-size:30px;line-height:1}
@@ -617,7 +605,8 @@ async function checkRememberMe(){
   const r = await api('GET', '/api/auth?action=verify');
   if (r && r.valid && r.user) {
     CURRENT_USER = userFromJwtPayload(r.user);
-    await loadStores();
+    /* Stores load in background — Home renders instantly */
+    loadStores().catch(()=>{});
     enterApp();
     return true;
   }
@@ -668,7 +657,12 @@ async function doLogin(){
       _isFirstLogin: !!r.employee.isFirstLogin
     };
 
-    await loadStores();
+    /* ─── PERFORMANCE: don't block sign-in on stores load ───
+       Kick off the stores fetch in the background. The Home page
+       doesn't need stores immediately; renderAuditStart waits for
+       STORES if empty (existing fallback). This shaves ~400ms off
+       the perceived sign-in time. */
+    loadStores().catch(()=>{});
     postLogin();
   } finally {
     restoreBtn();
@@ -711,7 +705,7 @@ function enterApp(){
     <div class="who">
       <b>${u.emp_name}</b>
       <span>${u.emp_designation} · ${u.store_name || ''}</span>
-      <span class="pill">HOD: ${u.hod || '—'}</span> ${adminPill}
+      ${adminPill}
     </div>`;
   document.getElementById('navSubLabel').textContent = isAdminish(u) ? 'All' : 'My';
   go('home');
@@ -1023,7 +1017,7 @@ function pickStore(code){
   SESSION.idx = 0;
   SESSION.responses = {};
   SESSION.sessionId = null;
-  ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:'', photos:[], voiceUrl:'', uploading:false});
+  ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:'', photos:[], uploading:false});
   go('audit-form');
 }
 function renderAuditForm(host){
@@ -1043,6 +1037,16 @@ function renderAuditForm(host){
         <div class="qhindi">${it.hindi}</div>
         <div class="qtext">${it.what}</div>
       </div>
+      <!-- YES / NO buttons (was PASS / FAIL) — keep the .pass/.fail CSS classes so styling still works -->
+      <div class="pfrow">
+        <button class="pf pass ${r.pass===true?'on':''}" onclick="setPF(${it.id},true,this)"><span class="em">✅</span><div>YES</div></button>
+        <button class="pf fail ${r.pass===false?'on':''}" onclick="setPF(${it.id},false,this)"><span class="em">❌</span><div>NO</div></button>
+      </div>
+      <div class="remarks">
+        <label>Remarks / टिप्पणी (optional)</label>
+        <textarea oninput="SESSION.responses[${it.id}].remarks=this.value" placeholder="Anything to note?">${r.remarks||''}</textarea>
+      </div>
+      <!-- Photo evidence — moved to BOTTOM of the question card as requested -->
       <div class="evbox">
         <div class="lbl">📸 <b>${it.photoNeeded?'Photo evidence (recommended)':'Photo / Image (optional)'}</b></div>
         <div class="ev">${it.evidence}</div>
@@ -1053,23 +1057,6 @@ function renderAuditForm(host){
           <input type="file" id="file-${it.id}" accept="image/*" multiple style="display:none" onchange="handleFiles(${it.id},this.files)" />
         </div>
       </div>
-      <div class="voicebox">
-        <div class="vhead"><span>🎙️ <b>Voice Note</b> (optional)</span><span class="hindi">आवाज़</span></div>
-        ${r.voiceUrl ? `
-          <div class="vrow"><audio controls src="${r.voiceUrl}"></audio><button onclick="rmVoice(${it.id})">Delete</button></div>
-        ` : `
-          <button class="recbtn" id="rec-${it.id}" onclick="toggleVoice(${it.id})">
-            <span class="dot"></span><span id="recLbl-${it.id}">Tap to record</span><span id="recTime-${it.id}" style="margin-left:auto;font-variant-numeric:tabular-nums"></span>
-          </button>`}
-      </div>
-      <div class="pfrow">
-        <button class="pf pass ${r.pass===true?'on':''}" onclick="setPF(${it.id},true,this)"><span class="em">✅</span><div>PASS</div></button>
-        <button class="pf fail ${r.pass===false?'on':''}" onclick="setPF(${it.id},false,this)"><span class="em">❌</span><div>FAIL</div></button>
-      </div>
-      <div class="remarks">
-        <label>Remarks / टिप्पणी (optional)</label>
-        <textarea oninput="SESSION.responses[${it.id}].remarks=this.value" placeholder="Anything to note?">${r.remarks||''}</textarea>
-      </div>
     </div>
     <div style="height:80px"></div>
     <div class="actionbar">
@@ -1078,7 +1065,7 @@ function renderAuditForm(host){
     </div>`;
 }
 function setPF(id, val, btn){
-  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:''};
+  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[]};
   SESSION.responses[id].pass = val;
   document.getElementById('nextBtn').disabled = false;
   document.querySelectorAll('.pf').forEach(b=>b.classList.remove('on'));
@@ -1097,7 +1084,7 @@ function fileToDataURI(file){
   });
 }
 async function handleFiles(id, fileList){
-  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[],voiceUrl:''};
+  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[]};
   const free = Math.max(0, 3 - SESSION.responses[id].photos.length);
   const files = [...fileList].filter(f => /^image\//.test(f.type)).slice(0, free);
   if(!files.length){ toast('Up to 3 photos'); return; }
@@ -1125,62 +1112,7 @@ async function handleFiles(id, fileList){
   if (failed) toast(`${added} added · ${failed} failed`); else toast(`${added} photo${added>1?'s':''} added ✓`);
 }
 function rmPhoto(id, idx){ SESSION.responses[id].photos.splice(idx,1); renderAuditForm(document.getElementById('main')); }
-
-/* Voice notes — record, then upload to /api/upload (Drive) */
-let _vrec=null,_vchunks=[],_vstream=null,_vtimer=null,_vstart=0,_vid=null;
-function blobToDataURI(blob){
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = e => resolve(e.target.result);
-    r.onerror = reject;
-    r.readAsDataURL(blob);
-  });
-}
-async function toggleVoice(id){
-  if(_vrec && _vid===id){ stopVoice(); return; }
-  if(_vrec){ stopVoice(); }
-  if(!navigator.mediaDevices || !window.MediaRecorder){ toast('Voice recording not supported'); return; }
-  try{
-    _vstream = await navigator.mediaDevices.getUserMedia({audio:true});
-    _vchunks = []; _vid = id;
-    _vrec = new MediaRecorder(_vstream);
-    _vrec.ondataavailable = e => { if(e.data && e.data.size) _vchunks.push(e.data); };
-    _vrec.onstop = async () => {
-      const blob = new Blob(_vchunks, {type:_vrec.mimeType||'audio/webm'});
-      _vstream.getTracks().forEach(t=>t.stop());
-      _vrec=null;_vstream=null;_vid=null;clearInterval(_vtimer);_vtimer=null;
-      toast('Uploading voice…');
-      try {
-        const dataUri = await blobToDataURI(blob);
-        const r = await api('POST', '/api/upload', {
-          fileData: dataUri,
-          fileName: `voice_${CURRENT_USER.emp_code}_${SESSION.storeCode}_${id}_${Date.now()}.webm`,
-          mimeType: blob.type || 'audio/webm'
-        });
-        if (r && r.url) {
-          SESSION.responses[id].voiceUrl = r.url;
-          SESSION.responses[id].voiceFileId = r.fileId;
-          renderAuditForm(document.getElementById('main'));
-          toast('Voice note saved ✓');
-        } else {
-          renderAuditForm(document.getElementById('main'));
-          toast('Voice upload failed: ' + (r && r.error ? r.error : 'unknown'));
-        }
-      } catch (e) {
-        renderAuditForm(document.getElementById('main'));
-        toast('Voice upload failed: ' + e.message);
-      }
-    };
-    _vrec.start();
-    _vstart = Date.now();
-    const btn=document.getElementById('rec-'+id),lbl=document.getElementById('recLbl-'+id),tim=document.getElementById('recTime-'+id);
-    if(btn) btn.classList.add('live');
-    if(lbl) lbl.textContent = 'Recording…';
-    _vtimer = setInterval(()=>{ const s=Math.floor((Date.now()-_vstart)/1000); if(tim) tim.textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); if(s>=60) stopVoice(); },250);
-  }catch(err){ toast('Microphone permission denied'); }
-}
-function stopVoice(){ if(_vrec && _vrec.state==='recording') _vrec.stop(); }
-function rmVoice(id){ SESSION.responses[id].voiceUrl=''; SESSION.responses[id].voiceFileId=null; renderAuditForm(document.getElementById('main')); }
+/* Voice notes feature removed per spec (photo evidence only). */
 
 /* Result */
 function gradeFor(pct){ return pct >= 80 ? 'Gold' : (pct >= 60 ? 'Silver' : 'Red'); }
@@ -1247,12 +1179,11 @@ async function finishAudit(pct, grade, pass){
 
   /* 2) Batch all 25 answers into a single round trip (huge win at 90 concurrent users).
         Backend's checklist_items table is auto-seeded; ITEMS.id 1..25 maps to seed order. */
-  const thumbs = [], audios = [];
+  const thumbs = [];
   const answers = ITEMS.map(it => {
     const r = SESSION.responses[it.id] || {};
     const photoUrls = (r.photos || []).map(p => p.url).filter(Boolean);
     photoUrls.forEach(u => { if (thumbs.length < 8) thumbs.push(u); });
-    if (r.voiceUrl && audios.length < 3) audios.push(r.voiceUrl);
     return {
       itemId: it.id,
       status: r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending'),
@@ -1274,7 +1205,7 @@ async function finishAudit(pct, grade, pass){
     sessionId,
     managerName: store.manager || '',
     thumbnailUrls: thumbs,
-    audioUrls: audios
+    audioUrls: []
   });
   if (!subR || !subR.success) {
     toast('Submit failed: ' + (subR && subR.error ? subR.error : 'unknown'));
@@ -1332,9 +1263,8 @@ async function renderSubmissions(host){
             <div class="info"><b>${s.store_name||'—'}</b><small>${s.date||''} · ${s.auditor||''} · ${s.pass}/${s.total} passed</small></div>
             <div class="pct">${s.pct}%</div>
           </div>
-          ${s.thumbs.length || s.audio.length ? `<div class="thumbs">
+          ${s.thumbs.length ? `<div class="thumbs">
             ${s.thumbs.map(t => `<div class="th" onclick="event.stopPropagation();openLightbox('${t}')"><img src="${t}" alt="" /></div>`).join('')}
-            ${s.audio.map(a => `<audio controls src="${a}" style="height:32px"></audio>`).join('')}
           </div>`:''}
         </div>`).join('')}
   `;
@@ -1364,9 +1294,6 @@ function renderSubmissionDetail(host){
         ${s.thumbs.map(t=>`<div class="th" style="width:90px;height:90px;border-radius:10px;background:#e9eaf0 center/cover no-repeat;border:1px solid var(--line);cursor:pointer;overflow:hidden" onclick="openLightbox('${t}')"><img src="${t}" alt="" style="width:100%;height:100%;object-fit:cover" /></div>`).join('')}
       </div>
       <div class="hint" style="font-size:12px;color:var(--mute);margin-top:8px">Tap any photo to view fullscreen.</div>
-    </div>`:''}
-    ${s.audio.length ? `<div class="card"><h2>Voice notes (${s.audio.length})</h2>
-      ${s.audio.map(a=>`<audio controls src="${a}" style="width:100%;margin-top:6px"></audio>`).join('')}
     </div>`:''}
   `;
 }

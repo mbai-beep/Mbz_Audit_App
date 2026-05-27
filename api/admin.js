@@ -27,6 +27,20 @@ module.exports = async (req, res) => {
     return res.status(403).json({ success: false, error: e.message });
   }
 
+  /* All downstream errors return JSON, never a bare 500 */
+  try {
+    return await runAdmin(req, res);
+  } catch (err) {
+    console.error('[admin] unhandled error:', err && err.stack ? err.stack : err);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error: ' + (err && err.message ? err.message : 'unknown'),
+      action: req.query && req.query.action
+    });
+  }
+};
+
+async function runAdmin(req, res) {
   await ensureTable();
   const db = getDB();
   const { action } = req.query;
@@ -138,5 +152,5 @@ module.exports = async (req, res) => {
     return res.json({ success: true });
   }
 
-  return res.status(400).json({ error: 'Invalid action' });
-};
+  return res.status(400).json({ success: false, error: 'Invalid action: ' + action });
+}
