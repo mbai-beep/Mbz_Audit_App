@@ -1042,11 +1042,7 @@ function renderAuditForm(host){
         <button class="pf pass ${r.pass===true?'on':''}" onclick="setPF(${it.id},true,this)"><span class="em">✅</span><div>YES</div></button>
         <button class="pf fail ${r.pass===false?'on':''}" onclick="setPF(${it.id},false,this)"><span class="em">❌</span><div>NO</div></button>
       </div>
-      <div class="remarks">
-        <label>Remarks / टिप्पणी (optional)</label>
-        <textarea oninput="SESSION.responses[${it.id}].remarks=this.value" placeholder="Anything to note?">${r.remarks||''}</textarea>
-      </div>
-      <!-- Photo evidence — moved to BOTTOM of the question card as requested -->
+      <!-- Photo evidence — sits above Remarks, per latest spec -->
       <div class="evbox">
         <div class="lbl">📸 <b>${it.photoNeeded?'Photo evidence (recommended)':'Photo / Image (optional)'}</b></div>
         <div class="ev">${it.evidence}</div>
@@ -1056,6 +1052,11 @@ function renderAuditForm(host){
             <div class="add" onclick="document.getElementById('file-${it.id}').click()"><b>＋</b>${r.uploading?'Uploading…':'Add Photo'}<br/><small>${(r.photos||[]).length}/3</small></div>`:''}
           <input type="file" id="file-${it.id}" accept="image/*" multiple style="display:none" onchange="handleFiles(${it.id},this.files)" />
         </div>
+      </div>
+      <!-- Remarks — moved to the very BOTTOM of the question card per latest spec -->
+      <div class="remarks">
+        <label>Remarks / टिप्पणी (optional)</label>
+        <textarea oninput="SESSION.responses[${it.id}].remarks=this.value" placeholder="Anything to note?">${r.remarks||''}</textarea>
       </div>
     </div>
     <div style="height:80px"></div>

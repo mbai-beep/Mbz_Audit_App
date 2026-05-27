@@ -42,6 +42,7 @@ function recalc(session, answers) {
 
 /* Return snake_case session rows (matches the raw DB shape the frontend renders) */
 function mapSession(r) {
+  if (!r || typeof r !== 'object') return null;
   let thumbs = [];
   let audios = [];
   try { thumbs = JSON.parse(r.thumbnail_urls || '[]'); } catch (_) {}
@@ -63,8 +64,8 @@ function mapSession(r) {
     pending_count: r.pending_count || 0,
     not_done_count: r.not_done_count || 0,
     compliance_pct: r.compliance_pct || 0,
-    thumbnail_urls: thumbs,
-    audio_urls: audios
+    thumbnail_urls: Array.isArray(thumbs) ? thumbs : [],
+    audio_urls: Array.isArray(audios) ? audios : []
   };
 }
 
@@ -100,11 +101,17 @@ module.exports = async (req, res) => {
   try {
     return await handle(req, res);
   } catch (err) {
+    /* Log full stack to Vercel function logs */
     console.error('[audits] unhandled error:', err && err.stack ? err.stack : err);
+    /* Surface a useful slice of the stack to the client too — without it
+       a generic "Cannot convert undefined or null to object" is impossible
+       to locate. Limit to ~400 chars so the toast stays readable. */
+    const stackHint = (err && err.stack) ? String(err.stack).split('\n').slice(0, 4).join(' | ').slice(0, 400) : '';
     return res.status(500).json({
       success: false,
       error: 'Server error: ' + (err && err.message ? err.message : 'unknown'),
-      action: req.query && req.query.action
+      action: req.query && req.query.action,
+      where: stackHint
     });
   }
 };
@@ -121,52 +128,78 @@ async function handle(req, res) {
 
   /* ── POST ?action=start — create/open today's session ───── */
   if (action === 'start' && req.method === 'POST') {
-    const { storeCode, storeName, auditDate, managerName } = req.body || {};
-    if (!storeCode) return res.json({ success: false, error: 'storeCode required' });
+    let stage = 'init';
+    try {
+      stage = 'parse-body';
+      const body = req.body || {};
+      const { storeCode, storeName, auditDate, managerName } = body;
+      if (!storeCode) return res.json({ success: false, error: 'storeCode required' });
 
-    const dt = auditDate || todayIST();
-    // Return existing in-progress session for this code+date+auditor if present
-    const existing = await db.execute({
-      sql: `SELECT * FROM audit_sessions
-            WHERE store_code = ? AND audit_date = ? AND conducted_by_code = ?
-            ORDER BY created_at DESC LIMIT 1`,
-      args: [storeCode, dt, user.empCode]
-    });
-    if (existing.rows.length) {
-      return res.json({ success: true, session: mapSession(existing.rows[0]) });
+      stage = 'validate-user';
+      const empCode = user && (user.empCode || user.emp_code);
+      if (!empCode) return res.json({ success: false, error: 'Token missing empCode — please sign out and sign in again' });
+
+      const dt = auditDate || todayIST();
+
+      stage = 'check-existing-session';
+      const existing = await db.execute({
+        sql: `SELECT * FROM audit_sessions
+              WHERE store_code = ? AND audit_date = ? AND conducted_by_code = ?
+              ORDER BY created_at DESC LIMIT 1`,
+        args: [String(storeCode), dt, Number(empCode)]
+      });
+      if (existing.rows && existing.rows.length) {
+        return res.json({ success: true, session: mapSession(existing.rows[0]) });
+      }
+
+      stage = 'fetch-checklist-items';
+      const items = await db.execute({
+        sql: 'SELECT id FROM checklist_items WHERE is_active = 1 ORDER BY sort_order'
+      });
+      const itemRows = (items && Array.isArray(items.rows)) ? items.rows : [];
+
+      const sessionId = `AU-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const nowStr = nowIST();
+
+      stage = 'insert-session';
+      await db.execute({
+        sql: `INSERT INTO audit_sessions
+              (id, store_code, store_name, audit_date, manager_name,
+               conducted_by_code, conducted_by_name, conducted_by_role,
+               status, created_at, total_items, done_count, pending_count,
+               not_done_count, compliance_pct)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'in_progress', ?, ?, 0, ?, 0, 0)`,
+        args: [sessionId, String(storeCode), String(storeName || ''), dt, String(managerName || ''),
+               Number(empCode), String((user && user.empName) || ''), String((user && user.role) || 'auditor'),
+               nowStr, itemRows.length, itemRows.length]
+      });
+
+      stage = 'seed-answers';
+      if (itemRows.length) {
+        const stmts = itemRows
+          .filter(it => it && it.id != null)
+          .map(it => ({
+            sql: `INSERT OR IGNORE INTO audit_answers
+                  (session_id, item_id, status, updated_at)
+                  VALUES (?, ?, 'Pending', ?)`,
+            args: [sessionId, Number(it.id), nowStr]
+          }));
+        if (stmts.length) await db.batch(stmts, 'write');
+      }
+
+      stage = 'reload-session';
+      const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [sessionId] });
+      const row = s.rows && s.rows[0];
+      if (!row) return res.json({ success: false, error: 'Session inserted but could not be read back' });
+      return res.json({ success: true, session: mapSession(row) });
+    } catch (err) {
+      console.error(`[audits.start] stage=${stage}:`, err && err.stack ? err.stack : err);
+      return res.status(500).json({
+        success: false,
+        error: `start failed at stage "${stage}": ${err && err.message ? err.message : 'unknown'}`,
+        stage
+      });
     }
-
-    // Create new session + pre-create answer rows for active items
-    const items = await db.execute({
-      sql: 'SELECT id FROM checklist_items WHERE is_active = 1 ORDER BY sort_order'
-    });
-    const sessionId = `AU-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const nowStr = nowIST();
-
-    await db.execute({
-      sql: `INSERT INTO audit_sessions
-            (id, store_code, store_name, audit_date, manager_name,
-             conducted_by_code, conducted_by_name, conducted_by_role,
-             status, created_at, total_items, done_count, pending_count,
-             not_done_count, compliance_pct)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'in_progress', ?, ?, 0, ?, 0, 0)`,
-      args: [sessionId, storeCode, storeName || '', dt, managerName || '',
-             user.empCode, user.empName || '', user.role || 'auditor',
-             nowStr, items.rows.length, items.rows.length]
-    });
-
-    if (items.rows.length) {
-      const stmts = items.rows.map(it => ({
-        sql: `INSERT OR IGNORE INTO audit_answers
-              (session_id, item_id, status, updated_at)
-              VALUES (?, ?, 'Pending', ?)`,
-        args: [sessionId, it.id, nowStr]
-      }));
-      await db.batch(stmts, 'write');
-    }
-
-    const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [sessionId] });
-    return res.json({ success: true, session: mapSession(s.rows[0]) });
   }
 
   /* ── GET ?action=session&id=... — full detail ──────────── */
