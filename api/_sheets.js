@@ -263,10 +263,64 @@ async function readAuditAnswersBySession(sessionId) {
     }));
 }
 
+/* ── Delete all rows in the single tab that match a given session_id.
+   Used by admin "Delete Submission". Returns { deleted: N }. */
+async function deleteSessionRows(sessionId) {
+  if (!envOk()) return { deleted: 0, error: 'Sheets not configured' };
+  if (!sessionId) return { deleted: 0, error: 'sessionId required' };
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+
+  /* Find the tab's numeric sheetId (required for deleteDimension) */
+  const metaUrl = apiUrl(sheetId, '', { fields: 'sheets(properties(sheetId,title))' });
+  const mr = await googleFetch(metaUrl, {}, SCOPE);
+  const meta = await mr.json();
+  const target = (meta.sheets || []).find(s => s.properties && s.properties.title === TAB);
+  if (!target) return { deleted: 0, error: `Tab '${TAB}' not found` };
+  const numericSheetId = target.properties.sheetId;
+
+  /* Read column A only to find row indices for this session */
+  const readUrl = apiUrl(sheetId, `/values/${encodeURIComponent(TAB + '!A2:A')}`);
+  const rr = await googleFetch(readUrl, {}, SCOPE);
+  const rdata = await rr.json();
+  const colA = rdata.values || [];
+
+  /* Collect zero-based row indices (in the sheet) where Session ID matches */
+  const indices = [];
+  for (let i = 0; i < colA.length; i++) {
+    if (String(colA[i][0]) === String(sessionId)) {
+      indices.push(i + 1); // +1 because data starts at row 2 (header is row 1, zero-indexed = 0)
+    }
+  }
+  if (!indices.length) return { deleted: 0 };
+
+  /* Delete in DESCENDING order so earlier indices stay valid */
+  indices.sort((a, b) => b - a);
+  const requests = indices.map(idx => ({
+    deleteDimension: {
+      range: {
+        sheetId: numericSheetId,
+        dimension: 'ROWS',
+        startIndex: idx,
+        endIndex: idx + 1
+      }
+    }
+  }));
+
+  const batchUrl = apiUrl(sheetId, ':batchUpdate');
+  await googleFetch(batchUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests })
+  }, SCOPE);
+
+  return { deleted: indices.length };
+}
+
 module.exports = {
   appendAuditData,
   markAnswerFixed,
   readAuditAnswersBySession,
+  deleteSessionRows,
   ensureHeader,
   /* Back-compat shims — older code paths still call these names but they
      now route to the single-tab writer. */

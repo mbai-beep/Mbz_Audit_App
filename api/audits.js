@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 const {
   appendAuditData,
   markAnswerFixed,
-  readAuditAnswersBySession
+  readAuditAnswersBySession,
+  deleteSessionRows
 } = require('./_sheets');
 
 /* Privileged roles allowed to mark No items as fixed in follow-up */
@@ -465,6 +466,43 @@ async function handle(req, res) {
       fixedAt: nowIST()
     });
     return res.json(r);
+  }
+
+  /* ── POST ?action=delete-session — admin only ────────────
+     Deletes the audit from Turso (audit_sessions + audit_answers)
+     and removes all matching rows from the Google Sheet single tab. */
+  if (action === 'delete-session' && req.method === 'POST') {
+    if (user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Only admin can delete submissions' });
+    }
+    const { sessionId } = req.body || {};
+    if (!sessionId) return res.json({ success: false, error: 'sessionId required' });
+
+    /* 1) Turso — delete answers first, then session */
+    try {
+      await db.execute({
+        sql: 'DELETE FROM audit_answers WHERE session_id = ?',
+        args: [String(sessionId)]
+      });
+      await db.execute({
+        sql: 'DELETE FROM audit_sessions WHERE id = ?',
+        args: [String(sessionId)]
+      });
+    } catch (e) {
+      console.error('[audits.delete-session] turso delete:', e.message);
+      return res.status(500).json({ success: false, error: 'Turso delete failed: ' + e.message });
+    }
+
+    /* 2) Sheets — remove all rows for this session (best-effort) */
+    let sheetRowsDeleted = 0;
+    try {
+      const r = await deleteSessionRows(sessionId);
+      sheetRowsDeleted = (r && r.deleted) || 0;
+    } catch (e) {
+      console.error('[audits.delete-session] sheets delete:', e.message);
+    }
+
+    return res.json({ success: true, sessionId, sheetRowsDeleted });
   }
 
   /* ── GET ?action=list — recent sessions, scoped by role ─ */

@@ -1084,6 +1084,47 @@ function fileToDataURI(file){
     r.readAsDataURL(file);
   });
 }
+
+/* ── Browser-side image compression ─────────────────────────
+   Decodes the image, downscales so the longest side <= MAX,
+   re-encodes as JPEG at QUALITY. A typical 5 MB iPhone photo
+   becomes ~300–500 KB after this — faster uploads, less Drive
+   quota burned, identical visual quality for audit review. */
+async function compressImage(file, opts){
+  const MAX = (opts && opts.maxDim) || 1600;
+  const QUALITY = (opts && opts.quality) || 0.85;
+  /* Non-image files pass through untouched */
+  if (!file || !/^image\//.test(file.type)) return file;
+  try {
+    const dataUri = await fileToDataURI(file);
+    const img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = rej;
+      im.src = dataUri;
+    });
+    let w = img.naturalWidth, h = img.naturalHeight;
+    /* Skip work if the photo is already small enough */
+    if (w <= MAX && h <= MAX && file.size < 600 * 1024) return file;
+    const scale = Math.min(1, MAX / Math.max(w, h));
+    const cw = Math.round(w * scale), ch = Math.round(h * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = cw; canvas.height = ch;
+    const ctx = canvas.getContext('2d');
+    /* High-quality scaling */
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, cw, ch);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', QUALITY));
+    if (!blob) return file; // fallback to original on encode failure
+    /* Wrap as a File so existing code paths still see a name/type */
+    const baseName = (file.name || 'photo').replace(/\.[^.]+$/, '');
+    return new File([blob], baseName + '.jpg', { type: 'image/jpeg' });
+  } catch (e) {
+    console.warn('[compress] failed, sending original:', e.message);
+    return file;
+  }
+}
 async function handleFiles(id, fileList){
   SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[]};
   const free = Math.max(0, 3 - SESSION.responses[id].photos.length);
@@ -1093,14 +1134,16 @@ async function handleFiles(id, fileList){
   SESSION.responses[id].uploading = true;
   renderAuditForm(document.getElementById('main'));
   /* Parallel upload — Promise.all is dramatically faster than sequential for 2-3 photos.
+     Each image is compressed in the browser first (JPEG ~85%, max 1600px).
      Sends storeCode + phase so Drive lands the file in <root>/<store>/Pre_Audit/. */
   const results = await Promise.all(files.map(async f => {
     try {
-      const dataUri = await fileToDataURI(f);
+      const compressed = await compressImage(f, { maxDim: 1600, quality: 0.85 });
+      const dataUri = await fileToDataURI(compressed);
       const r = await api('POST', '/api/upload', {
         fileData: dataUri,
-        fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_q${id}_${Date.now()}_${(f.name||'photo.jpg').replace(/\s+/g,'_')}`,
-        mimeType: f.type || 'image/jpeg',
+        fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_q${id}_${Date.now()}_${(compressed.name||'photo.jpg').replace(/\s+/g,'_')}`,
+        mimeType: compressed.type || 'image/jpeg',
         storeCode: SESSION.storeCode,
         phase: 'Pre_Audit'
       });
@@ -1288,8 +1331,25 @@ async function renderSubmissions(host){
           ${s.thumbs.length ? `<div class="thumbs">
             ${s.thumbs.map(t => `<div class="th" onclick="event.stopPropagation();openLightbox('${t}')"><img src="${t}" alt="" /></div>`).join('')}
           </div>`:''}
+          ${isAdmin(CURRENT_USER) ? `
+            <div style="margin-top:8px;display:flex;justify-content:flex-end">
+              <button class="btn sm danger" onclick="event.stopPropagation();deleteSubmission('${s.id}','${(s.store_name||'').replace(/'/g,'')}','${s.date||''}')">🗑 Delete</button>
+            </div>` : ''}
         </div>`).join('')}
   `;
+}
+
+/* Admin-only — deletes a submission from Turso + Google Sheet rows */
+async function deleteSubmission(sessionId, storeName, auditDate){
+  if (!isAdmin(CURRENT_USER)) { toast('Only admin can delete'); return; }
+  const ok = confirm(`Delete this submission?\n\n${storeName} · ${auditDate}\n\nThis removes the audit from the database AND from the Google Sheet. This cannot be undone.`);
+  if (!ok) return;
+  toast('Deleting…');
+  const r = await api('POST', '/api/audits?action=delete-session', { sessionId });
+  if (!r || !r.success) { toast('Delete failed: ' + (r && r.error ? r.error : 'unknown')); return; }
+  toast(`Deleted ✓ · ${r.sheetRowsDeleted || 0} sheet rows removed`);
+  /* Refresh the list */
+  renderSubmissions(document.getElementById('main'));
 }
 let DETAIL_ANSWERS = []; // populated by renderSubmissionDetail for follow-up UI
 
@@ -1394,11 +1454,12 @@ function renderNoItemRow(a, s, idx, priv){
 }
 
 async function uploadFixPhoto(sessionId, itemId, storeCode, fileList){
-  const f = [...fileList].filter(x => /^image\//.test(x.type))[0];
-  if (!f) { toast('Pick an image'); return; }
+  const original = [...fileList].filter(x => /^image\//.test(x.type))[0];
+  if (!original) { toast('Pick an image'); return; }
   const btn = document.getElementById('fix-btn-' + itemId);
   const restore = btnLoad(btn, 'Uploading…');
   try {
+    const f = await compressImage(original, { maxDim: 1600, quality: 0.85 });
     const dataUri = await fileToDataURI(f);
     const up = await api('POST', '/api/upload', {
       fileData: dataUri,
