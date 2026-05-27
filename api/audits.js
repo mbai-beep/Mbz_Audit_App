@@ -153,9 +153,10 @@ async function handle(req, res) {
       }
 
       stage = 'fetch-checklist-items';
-      const items = await db.execute({
-        sql: 'SELECT id FROM checklist_items WHERE is_active = 1 ORDER BY sort_order'
-      });
+      /* libSQL client v0.14 quirk: when called with {sql} but NO args field,
+         the internal arg-binder hits Object.entries(undefined). Always pass
+         `args: []` explicitly for parameter-less queries, or use a bare string. */
+      const items = await db.execute('SELECT id FROM checklist_items WHERE is_active = 1 ORDER BY sort_order');
       const itemRows = (items && Array.isArray(items.rows)) ? items.rows : [];
 
       const sessionId = `AU-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -209,9 +210,8 @@ async function handle(req, res) {
     const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [id] });
     if (!s.rows.length) return res.json({ success: false, error: 'Not found' });
 
-    const items = await db.execute({
-      sql: 'SELECT * FROM checklist_items WHERE is_active = 1 ORDER BY sort_order'
-    });
+    /* Same libSQL quirk as above — use a bare string for parameter-less queries */
+    const items = await db.execute('SELECT * FROM checklist_items WHERE is_active = 1 ORDER BY sort_order');
     const ans = await db.execute({
       sql: 'SELECT * FROM audit_answers WHERE session_id = ?', args: [id]
     });
