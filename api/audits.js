@@ -505,6 +505,41 @@ async function handle(req, res) {
     return res.json({ success: true, sessionId, sheetRowsDeleted });
   }
 
+  /* ── POST ?action=delete-sessions — admin only, batch delete ─
+     Body: { sessionIds: ["AU-...", "AU-..."] }
+     Deletes each from Turso (sessions + answers) and Google Sheet rows.
+     Returns aggregate counts even when some IDs fail (per-id error list). */
+  if (action === 'delete-sessions' && req.method === 'POST') {
+    if (user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Only admin can delete submissions' });
+    }
+    const { sessionIds } = req.body || {};
+    if (!Array.isArray(sessionIds) || !sessionIds.length) {
+      return res.json({ success: false, error: 'sessionIds[] required' });
+    }
+    let deleted = 0, sheetRowsDeleted = 0;
+    const errors = [];
+    for (const rawId of sessionIds) {
+      const sid = String(rawId || '').trim();
+      if (!sid) continue;
+      try {
+        await db.execute({ sql: 'DELETE FROM audit_answers WHERE session_id = ?', args: [sid] });
+        await db.execute({ sql: 'DELETE FROM audit_sessions WHERE id = ?',         args: [sid] });
+        deleted++;
+        try {
+          const r = await deleteSessionRows(sid);
+          sheetRowsDeleted += (r && r.deleted) || 0;
+        } catch (e) {
+          console.error('[delete-sessions] sheet fail for', sid, ':', e.message);
+        }
+      } catch (e) {
+        console.error('[delete-sessions] turso fail for', sid, ':', e.message);
+        errors.push({ sessionId: sid, error: e.message });
+      }
+    }
+    return res.json({ success: true, deleted, sheetRowsDeleted, errors });
+  }
+
   /* ── GET ?action=list — recent sessions, scoped by role ─ */
   if (action === 'list' && req.method === 'GET') {
     const { storeCode, from, to, limit } = req.query;

@@ -132,6 +132,29 @@
   .photoslot .ph img{width:100%;height:100%;object-fit:cover;display:block}
   .photoslot .ph .x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;background:#fff;border:1.5px solid var(--line2);color:var(--ink);display:grid;place-items:center;font-size:14px;cursor:pointer;z-index:2}
 
+  /* 5-page layout: per-section sub-items */
+  .subitem{padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff;margin:10px 14px 0}
+  .subitem .subhdr{display:flex;align-items:flex-start;gap:8px}
+  .subitem .letter{flex:0 0 28px;height:28px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-weight:800;display:grid;place-items:center;font-size:13px;margin-top:2px}
+  .subitem .stitle{flex:1;min-width:0}
+  .subitem .stitle b{display:block;font-size:15px;line-height:1.25}
+  .subitem .stitle small{display:block;font-size:12px;color:var(--mute);margin-top:2px}
+  .subitem .stitle .qtext{font-size:13px;color:var(--ink2);margin-top:6px;line-height:1.45}
+  .subitem .mini-pf{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .subitem .mini-pf .pf{padding:10px 6px;font-size:14px;border-radius:10px}
+  .subitem .mini-pf .pf .em{font-size:18px}
+  .subitem .mini-remarks{margin-top:8px}
+  .subitem .mini-remarks textarea{min-height:36px;padding:8px 10px;font-size:13px}
+
+  /* Multi-select bulk delete */
+  .bulkbar{position:sticky;top:54px;z-index:18;background:#fff;border-bottom:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(31,51,73,.06)}
+  .bulkbar .count{flex:1;font-weight:700;color:var(--ink)}
+  .bulkbar button{padding:8px 12px;border-radius:8px;border:1.5px solid var(--line2);background:#fff;color:var(--ink);font-weight:700;font-size:13px;cursor:pointer}
+  .bulkbar button.danger{background:var(--bad);color:#fff;border-color:var(--bad)}
+  .bulkbar button:disabled{opacity:.5;cursor:not-allowed}
+  .submrow.selectable{padding-left:46px;position:relative}
+  .submrow .sel-check{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:22px;height:22px;accent-color:var(--brand);cursor:pointer}
+
   /* YES / NO buttons (2-state per new framework — previously PASS / FAIL) */
   .pfrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 14px 14px}
   .pf{padding:18px 8px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -503,11 +526,11 @@
 const TODAY = new Date().toISOString().slice(0,10);
 
 const SECTIONS = [
-  {id:1, name:'Physical Space',   hindi:'दुकान की जगह',  icon:'🧹', color:'#8DBBCC'},
-  {id:2, name:'Staff Grooming',   hindi:'स्टाफ़',         icon:'👤', color:'#7E90FF'},
-  {id:3, name:'Inventory',        hindi:'सामान',         icon:'📦', color:'#1B9B6C'},
-  {id:4, name:'Customer Service', hindi:'ग्राहक सेवा',   icon:'🙏', color:'#E08A1A'},
-  {id:5, name:'People & Routine', hindi:'टीम और दिनचर्या', icon:'👥', color:'#9CAEC2'}
+  {id:1, name:'Physical Space & Facility Management', hindi:'दुकान की जगह',    icon:'🧹', color:'#8DBBCC'},
+  {id:2, name:'Staff Grooming & Discipline',          hindi:'स्टाफ़',           icon:'👤', color:'#7E90FF'},
+  {id:3, name:'Product & Inventory Control',          hindi:'सामान',           icon:'📦', color:'#1B9B6C'},
+  {id:4, name:'Customer Service Excellence',          hindi:'ग्राहक सेवा',     icon:'🙏', color:'#E08A1A'},
+  {id:5, name:'People & Routine',                     hindi:'टीम और दिनचर्या', icon:'👥', color:'#9CAEC2'}
 ];
 const ITEMS = [
   {id:1,  sec:1, title:'Punctuality & Opening',  hindi:'समय पर खुलना',     evidence:'Opening Log / Bio-metric Report',     photoNeeded:true,  what:'Was the store operational at the designated opening time?'},
@@ -577,7 +600,12 @@ let ADMIN_TAB = 'employees';
 let STORES = [];               // loaded from /api/stores
 let EMPLOYEES_CACHE = [];      // loaded by admin tab from /api/admin?action=list-employees
 let SUBMISSIONS_CACHE = [];    // loaded by submissions tab from /api/audits?action=list
-const SESSION = {idx:0, storeCode:'', date:TODAY, responses:{}, sessionId:null};
+/* SESSION model:
+   - pageIdx (0..4) — which of the 5 section-pages the user is on
+   - responses[itemId] = { pass, remarks } — per sub-question state
+   - pagePhotos[sectionId] = { url, fileId, uploading } — mandatory page photo
+*/
+const SESSION = {pageIdx:0, idx:0, storeCode:'', date:TODAY, responses:{}, pagePhotos:{}, sessionId:null};
 
 function isAdminish(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
 function canAccessAdmin(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
@@ -1015,65 +1043,168 @@ function startAuditFromDropdown(){
 function pickStore(code){
   SESSION.storeCode = code;
   SESSION.idx = 0;
+  SESSION.pageIdx = 0;
   SESSION.responses = {};
+  SESSION.pagePhotos = {};
   SESSION.sessionId = null;
-  ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:'', photos:[], uploading:false});
+  ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:''});
+  SECTIONS.forEach(s => SESSION.pagePhotos[s.id] = {url:'', fileId:'', uploading:false});
   go('audit-form');
 }
+/* ── NEW 5-PAGE AUDIT FORM ─────────────────────────────────
+   Each page renders one SECTION with its 5 sub-questions
+   (Yes/No + remarks per item) and one MANDATORY photo at the
+   bottom. "Next" is gated on every sub-item having a Yes/No
+   AND the page photo being uploaded. */
 function renderAuditForm(host){
-  const it = ITEMS[SESSION.idx];
-  if(!it){ go('audit-result'); return; }
-  const sec = SECTIONS.find(s => s.id === it.sec);
-  const r = SESSION.responses[it.id] || {photos:[]};
-  const done = SESSION.idx, total = ITEMS.length;
+  const sec = SECTIONS[SESSION.pageIdx];
+  if(!sec){ go('audit-result'); return; }
+  const items = ITEMS.filter(it => it.sec === sec.id);
+  const total = SECTIONS.length;
+  const pp = SESSION.pagePhotos[sec.id] || {url:'', fileId:'', uploading:false};
   const store = STORES.find(s => s.code === SESSION.storeCode);
+
+  /* Letter labels a..e for sub-items */
+  const letters = ['a','b','c','d','e','f','g','h'];
+
   host.innerHTML = `
-    <div class="progmeta"><span><b>${store?store.name:'Store'}</b> · ${SESSION.date}</span><span>${done+1} / ${total}</span></div>
-    <div class="progress"><div style="width:${(done/total)*100}%"></div></div>
+    <div class="progmeta"><span><b>${store?store.name:'Store'}</b> · ${SESSION.date}</span><span>Page ${SESSION.pageIdx+1} / ${total}</span></div>
+    <div class="progress"><div style="width:${((SESSION.pageIdx+1)/total)*100}%"></div></div>
     <div class="qcard">
       <div class="top">
-        <div class="badge" style="background:${sec.color}22;color:${sec.color}">${sec.icon} ${sec.name} · ${sec.hindi}</div>
-        <h2>${it.title}</h2>
-        <div class="qhindi">${it.hindi}</div>
-        <div class="qtext">${it.what}</div>
+        <div class="badge" style="background:${sec.color}22;color:${sec.color}">${sec.icon} Section ${sec.id} · ${sec.hindi}</div>
+        <h2>${sec.name}</h2>
       </div>
-      <!-- YES / NO buttons (was PASS / FAIL) — keep the .pass/.fail CSS classes so styling still works -->
-      <div class="pfrow">
-        <button class="pf pass ${r.pass===true?'on':''}" onclick="setPF(${it.id},true,this)"><span class="em">✅</span><div>YES</div></button>
-        <button class="pf fail ${r.pass===false?'on':''}" onclick="setPF(${it.id},false,this)"><span class="em">❌</span><div>NO</div></button>
-      </div>
-      <!-- Photo evidence — sits above Remarks, per latest spec -->
-      <div class="evbox">
-        <div class="lbl">📸 <b>${it.photoNeeded?'Photo evidence (recommended)':'Photo / Image (optional)'}</b></div>
-        <div class="ev">${it.evidence}</div>
+
+      ${items.map((it,i) => {
+        const r = SESSION.responses[it.id] || {pass:null, remarks:''};
+        return `
+          <div class="subitem" id="subitem-${it.id}">
+            <div class="subhdr">
+              <div class="letter">${letters[i] || (i+1)}</div>
+              <div class="stitle">
+                <b>${it.title}</b>
+                <small>${it.hindi || ''}</small>
+                <div class="qtext">${it.what}</div>
+              </div>
+            </div>
+            <div class="mini-pf pfrow">
+              <button class="pf pass ${r.pass===true?'on':''}"  onclick="setSubPF(${it.id},true,this)"><span class="em">✅</span><div>YES</div></button>
+              <button class="pf fail ${r.pass===false?'on':''}" onclick="setSubPF(${it.id},false,this)"><span class="em">❌</span><div>NO</div></button>
+            </div>
+            <div class="mini-remarks">
+              <textarea oninput="SESSION.responses[${it.id}].remarks=this.value;refreshNextBtn()" placeholder="Remarks (optional)">${r.remarks||''}</textarea>
+            </div>
+          </div>`;
+      }).join('')}
+
+      <!-- ── MANDATORY page photo at the bottom of the page ── -->
+      <div class="evbox" id="pagePhotoBox">
+        <div class="lbl">📸 <b>Page Photo (mandatory)</b></div>
+        <div class="ev">Capture one representative photo for this section before moving on.</div>
         <div class="photoslot">
-          ${(r.photos||[]).map((ph,i)=>`<div class="ph" onclick="openLightbox('${ph.url}')"><img src="${ph.url}" alt=""/><span class="x" onclick="event.stopPropagation();rmPhoto(${it.id},${i})">×</span></div>`).join('')}
-          ${(r.photos||[]).length < 3 ? `
-            <div class="add" onclick="document.getElementById('file-${it.id}').click()"><b>＋</b>${r.uploading?'Uploading…':'Add Photo'}<br/><small>${(r.photos||[]).length}/3</small></div>`:''}
-          <input type="file" id="file-${it.id}" accept="image/*" multiple style="display:none" onchange="handleFiles(${it.id},this.files)" />
+          ${pp.url ? `
+            <div class="ph" onclick="openLightbox('${pp.url}')">
+              <img src="${pp.url}" alt=""/>
+              <span class="x" onclick="event.stopPropagation();rmPagePhoto(${sec.id})">×</span>
+            </div>` : `
+            <div class="add" onclick="document.getElementById('pagefile-${sec.id}').click()">
+              <b>＋</b>${pp.uploading ? 'Uploading…' : 'Add Photo'}<br/>
+              <small>Required</small>
+            </div>`}
+          <input type="file" id="pagefile-${sec.id}" accept="image/*" style="display:none" onchange="handlePagePhoto(${sec.id},this.files)" />
         </div>
-      </div>
-      <!-- Remarks — moved to the very BOTTOM of the question card per latest spec -->
-      <div class="remarks">
-        <label>Remarks / टिप्पणी (optional)</label>
-        <textarea oninput="SESSION.responses[${it.id}].remarks=this.value" placeholder="Anything to note?">${r.remarks||''}</textarea>
       </div>
     </div>
     <div style="height:80px"></div>
     <div class="actionbar">
-      <button class="btn ghost" onclick="prevPoint()" ${SESSION.idx===0?'disabled':''}>← Back</button>
-      <button class="btn" id="nextBtn" onclick="nextPoint()" ${r.pass===null||r.pass===undefined?'disabled':''}>${SESSION.idx===total-1?'Finish ✓':'Next →'}</button>
+      <button class="btn ghost" onclick="prevPage()" ${SESSION.pageIdx===0?'disabled':''}>← Back</button>
+      <button class="btn" id="nextBtn" onclick="nextPage()" disabled>${SESSION.pageIdx===total-1?'Finish ✓':'Next →'}</button>
     </div>`;
+
+  refreshNextBtn();
 }
-function setPF(id, val, btn){
-  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[]};
+
+/* Validate: every sub-item answered AND page photo uploaded */
+function pageIsComplete(sec){
+  const items = ITEMS.filter(it => it.sec === sec.id);
+  const allAnswered = items.every(it => {
+    const r = SESSION.responses[it.id];
+    return r && (r.pass === true || r.pass === false);
+  });
+  const pp = SESSION.pagePhotos[sec.id];
+  const hasPhoto = !!(pp && pp.url);
+  return allAnswered && hasPhoto;
+}
+
+function refreshNextBtn(){
+  const btn = document.getElementById('nextBtn');
+  if (!btn) return;
+  const sec = SECTIONS[SESSION.pageIdx];
+  btn.disabled = !pageIsComplete(sec);
+}
+
+function setSubPF(id, val, btn){
+  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:''};
   SESSION.responses[id].pass = val;
-  document.getElementById('nextBtn').disabled = false;
-  document.querySelectorAll('.pf').forEach(b=>b.classList.remove('on'));
-  if(btn) btn.classList.add('on');
+  /* Toggle the two buttons within this sub-item ONLY */
+  const wrap = btn && btn.closest('.subitem');
+  if (wrap) wrap.querySelectorAll('.pf').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  refreshNextBtn();
 }
-function prevPoint(){ if(SESSION.idx>0){SESSION.idx--;renderAuditForm(document.getElementById('main'));} }
-function nextPoint(){ if(SESSION.idx<ITEMS.length-1){SESSION.idx++;renderAuditForm(document.getElementById('main'));} else go('audit-result'); }
+
+/* Page navigation */
+function prevPage(){
+  if (SESSION.pageIdx > 0) { SESSION.pageIdx--; renderAuditForm(document.getElementById('main')); }
+}
+function nextPage(){
+  const sec = SECTIONS[SESSION.pageIdx];
+  if (!pageIsComplete(sec)) { toast('Answer all questions and add the page photo'); return; }
+  if (SESSION.pageIdx < SECTIONS.length - 1) {
+    SESSION.pageIdx++;
+    renderAuditForm(document.getElementById('main'));
+  } else {
+    go('audit-result');
+  }
+}
+
+/* Mandatory page photo upload — one per page */
+async function handlePagePhoto(sectionId, fileList){
+  if (!SESSION.storeCode) { toast('Pick a store first'); return; }
+  const original = [...fileList].filter(f => /^image\//.test(f.type))[0];
+  if (!original) { toast('Pick an image'); return; }
+  SESSION.pagePhotos[sectionId] = SESSION.pagePhotos[sectionId] || {url:'',fileId:'',uploading:false};
+  SESSION.pagePhotos[sectionId].uploading = true;
+  renderAuditForm(document.getElementById('main'));
+  try {
+    const f = await compressImage(original, { maxDim: 1600, quality: 0.85 });
+    const dataUri = await fileToDataURI(f);
+    const r = await api('POST', '/api/upload', {
+      fileData: dataUri,
+      fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_sec${sectionId}_${Date.now()}_${(f.name||'page.jpg').replace(/\s+/g,'_')}`,
+      mimeType: f.type || 'image/jpeg',
+      storeCode: SESSION.storeCode,
+      phase: 'Pre_Audit'
+    });
+    if (r && r.success && r.url) {
+      SESSION.pagePhotos[sectionId] = { url: r.url, fileId: r.fileId, uploading: false };
+      toast('Page photo uploaded ✓');
+    } else {
+      SESSION.pagePhotos[sectionId].uploading = false;
+      toast('Upload failed: ' + ((r && r.error) || 'unknown'));
+    }
+  } catch (e) {
+    SESSION.pagePhotos[sectionId].uploading = false;
+    toast('Upload failed: ' + e.message);
+  }
+  renderAuditForm(document.getElementById('main'));
+}
+
+function rmPagePhoto(sectionId){
+  SESSION.pagePhotos[sectionId] = { url:'', fileId:'', uploading:false };
+  renderAuditForm(document.getElementById('main'));
+}
 
 /* Image upload — push to /api/upload (Drive) */
 function fileToDataURI(file){
@@ -1125,43 +1256,9 @@ async function compressImage(file, opts){
     return file;
   }
 }
-async function handleFiles(id, fileList){
-  SESSION.responses[id] = SESSION.responses[id] || {pass:null,remarks:'',photos:[]};
-  const free = Math.max(0, 3 - SESSION.responses[id].photos.length);
-  const files = [...fileList].filter(f => /^image\//.test(f.type)).slice(0, free);
-  if(!files.length){ toast('Up to 3 photos'); return; }
-  if(!SESSION.storeCode){ toast('Pick a store first'); return; }
-  SESSION.responses[id].uploading = true;
-  renderAuditForm(document.getElementById('main'));
-  /* Parallel upload — Promise.all is dramatically faster than sequential for 2-3 photos.
-     Each image is compressed in the browser first (JPEG ~85%, max 1600px).
-     Sends storeCode + phase so Drive lands the file in <root>/<store>/Pre_Audit/. */
-  const results = await Promise.all(files.map(async f => {
-    try {
-      const compressed = await compressImage(f, { maxDim: 1600, quality: 0.85 });
-      const dataUri = await fileToDataURI(compressed);
-      const r = await api('POST', '/api/upload', {
-        fileData: dataUri,
-        fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_q${id}_${Date.now()}_${(compressed.name||'photo.jpg').replace(/\s+/g,'_')}`,
-        mimeType: compressed.type || 'image/jpeg',
-        storeCode: SESSION.storeCode,
-        phase: 'Pre_Audit'
-      });
-      return (r && r.success && r.url) ? { ok:true, url:r.url, fileId:r.fileId } : { ok:false, err:(r&&r.error)||'unknown' };
-    } catch (e) { return { ok:false, err:e.message }; }
-  }));
-  let added = 0, failed = 0, lastErr = '';
-  for (const r of results) {
-    if (r.ok) { SESSION.responses[id].photos.push({ id:'img-'+Date.now()+'-'+Math.random().toString(36).slice(2,5), url:r.url, fileId:r.fileId }); added++; }
-    else { failed++; lastErr = r.err || lastErr; }
-  }
-  SESSION.responses[id].uploading = false;
-  renderAuditForm(document.getElementById('main'));
-  if (failed) toast(`${added} added · ${failed} failed${lastErr ? ' — '+lastErr : ''}`);
-  else toast(`${added} photo${added>1?'s':''} uploaded ✓`);
-}
-function rmPhoto(id, idx){ SESSION.responses[id].photos.splice(idx,1); renderAuditForm(document.getElementById('main')); }
-/* Voice notes feature removed per spec (photo evidence only). */
+/* The legacy per-question handleFiles/rmPhoto helpers were removed
+   when the audit moved to 5 pages with one mandatory photo per page.
+   See handlePagePhoto / rmPagePhoto above. */
 
 /* Result */
 function gradeFor(pct){ return pct >= 80 ? 'Gold' : (pct >= 60 ? 'Silver' : 'Red'); }
@@ -1226,13 +1323,19 @@ async function finishAudit(pct, grade, pass){
   const sessionId = startR.session.id;
   SESSION.sessionId = sessionId;
 
-  /* 2) Batch all 25 answers into a single round trip (huge win at 90 concurrent users).
-        Backend's checklist_items table is auto-seeded; ITEMS.id 1..25 maps to seed order. */
+  /* 2) Batch all 25 answers into a single round trip.
+        Photos now live at the PAGE/SECTION level — copy each page photo into
+        every sub-item belonging to that section so the Sheet records the
+        photo URL on every row. */
   const thumbs = [];
+  for (const s of SECTIONS) {
+    const pp = SESSION.pagePhotos[s.id];
+    if (pp && pp.url && thumbs.length < 8) thumbs.push(pp.url);
+  }
   const answers = ITEMS.map(it => {
     const r = SESSION.responses[it.id] || {};
-    const photoUrls = (r.photos || []).map(p => p.url).filter(Boolean);
-    photoUrls.forEach(u => { if (thumbs.length < 8) thumbs.push(u); });
+    const pp = SESSION.pagePhotos[it.sec] || {};
+    const photoUrls = pp.url ? [pp.url] : [];
     return {
       itemId: it.id,
       status: r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending'),
@@ -1250,17 +1353,19 @@ async function finishAudit(pct, grade, pass){
   }
 
   /* 3) Build per-item answer details for the single "Audits" sheet
-     (one row per Yes/No item; backend filters Pending out) */
+     (one row per Yes/No item; backend filters Pending out).
+     Photo URL is the page-level photo for that item's section. */
   const answerDetails = ITEMS.map(it => {
     const r = SESSION.responses[it.id] || {};
     const sec = SECTIONS.find(s => s.id === it.sec);
+    const pp = SESSION.pagePhotos[it.sec] || {};
     return {
       itemId: it.id,
       title: it.title,
       section: sec ? sec.name : '',
       status: r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending'),
       remarks: r.remarks || '',
-      photoUrls: (r.photos || []).map(p => p.url).filter(Boolean)
+      photoUrls: pp.url ? [pp.url] : []
     };
   });
 
@@ -1278,7 +1383,7 @@ async function finishAudit(pct, grade, pass){
     return;
   }
 
-  SESSION.idx = 0; SESSION.responses = {}; SESSION.storeCode = ''; SESSION.sessionId = null;
+  SESSION.idx = 0; SESSION.pageIdx = 0; SESSION.responses = {}; SESSION.pagePhotos = {}; SESSION.storeCode = ''; SESSION.sessionId = null;
   toast(subR.sheetsAppended ? 'Audit submitted ✓ Sheet synced' : 'Audit submitted ✓');
   go('submissions');
 }
@@ -1310,20 +1415,50 @@ async function loadSubmissions(){
     SUBMISSIONS_CACHE = [];
   }
 }
+/* Multi-select state for bulk delete (admin only) */
+let SUBMISSION_SELECT_MODE = false;
+let SELECTED_SUBMISSIONS = new Set();
+
 async function renderSubmissions(host){
   const u = CURRENT_USER;
   host.innerHTML = `
     <h1>${isAdminish(u)?'All Submissions':'My Submissions'}</h1>
     <div class="empty"><div class="ic">⏳</div><b>Loading…</b></div>`;
   await loadSubmissions();
-  const visible = SUBMISSIONS_CACHE; /* server already scopes by role */
+  /* Clean any selections of items that no longer exist */
+  const ids = new Set(SUBMISSIONS_CACHE.map(s => s.id));
+  for (const id of [...SELECTED_SUBMISSIONS]) if (!ids.has(id)) SELECTED_SUBMISSIONS.delete(id);
+  const visible = SUBMISSIONS_CACHE;
+  const canBulk = isAdmin(u);
+  const selectMode = SUBMISSION_SELECT_MODE && canBulk;
+  const allOnPage = visible.map(s => s.id);
+  const allSelected = selectMode && allOnPage.length && allOnPage.every(id => SELECTED_SUBMISSIONS.has(id));
+
   host.innerHTML = `
     <h1>${isAdminish(u)?'All Submissions':'My Submissions'}</h1>
     <div class="hindi" style="margin-bottom:14px">${isAdminish(u)?'सभी सबमिशन':'मेरी सबमिशन'} · ${visible.length} total</div>
+
+    ${canBulk ? `
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn sm ${selectMode?'':'ghost'}" onclick="toggleSelectMode()">${selectMode?'✓ Done':'☑️ Select'}</button>
+        ${selectMode ? `
+          <button class="btn sm ghost" onclick="toggleSelectAll()">${allSelected?'Clear all':'Select all'}</button>
+        ` : ''}
+      </div>` : ''}
+
+    ${selectMode ? `
+      <div class="bulkbar">
+        <div class="count">${SELECTED_SUBMISSIONS.size} selected</div>
+        <button class="danger" onclick="deleteSelectedSubmissions()" ${SELECTED_SUBMISSIONS.size===0?'disabled':''}>🗑 Delete ${SELECTED_SUBMISSIONS.size||''}</button>
+      </div>` : ''}
+
     ${visible.length===0 ? '<div class="empty"><div class="ic">📭</div><b>No submissions yet</b><p>Tap "Start New Audit" on Home.</p></div>' :
-      visible.map(s => `
-        <div class="submrow">
-          <div class="head" onclick="DETAIL_ID='${s.id}';go('submission-detail')" style="cursor:pointer">
+      visible.map(s => {
+        const checked = SELECTED_SUBMISSIONS.has(s.id);
+        return `
+        <div class="submrow ${selectMode?'selectable':''}">
+          ${selectMode ? `<input type="checkbox" class="sel-check" ${checked?'checked':''} onclick="toggleSubSelected('${s.id}',this.checked)" />` : ''}
+          <div class="head" onclick="${selectMode?`toggleSubSelected('${s.id}', !${checked})`:`DETAIL_ID='${s.id}';go('submission-detail')`}" style="cursor:pointer">
             <div class="gradedot ${s.grade}">${s.grade[0]}</div>
             <div class="info"><b>${s.store_name||'—'}</b><small>${s.date||''} · ${s.auditor||''} · ${s.pass}/${s.total} passed</small></div>
             <div class="pct">${s.pct}%</div>
@@ -1331,24 +1466,40 @@ async function renderSubmissions(host){
           ${s.thumbs.length ? `<div class="thumbs">
             ${s.thumbs.map(t => `<div class="th" onclick="event.stopPropagation();openLightbox('${t}')"><img src="${t}" alt="" /></div>`).join('')}
           </div>`:''}
-          ${isAdmin(CURRENT_USER) ? `
-            <div style="margin-top:8px;display:flex;justify-content:flex-end">
-              <button class="btn sm danger" onclick="event.stopPropagation();deleteSubmission('${s.id}','${(s.store_name||'').replace(/'/g,'')}','${s.date||''}')">🗑 Delete</button>
-            </div>` : ''}
-        </div>`).join('')}
+        </div>`;}).join('')}
   `;
 }
 
-/* Admin-only — deletes a submission from Turso + Google Sheet rows */
-async function deleteSubmission(sessionId, storeName, auditDate){
+function toggleSelectMode(){
+  SUBMISSION_SELECT_MODE = !SUBMISSION_SELECT_MODE;
+  if (!SUBMISSION_SELECT_MODE) SELECTED_SUBMISSIONS.clear();
+  renderSubmissions(document.getElementById('main'));
+}
+function toggleSubSelected(id, checked){
+  if (checked) SELECTED_SUBMISSIONS.add(id);
+  else SELECTED_SUBMISSIONS.delete(id);
+  renderSubmissions(document.getElementById('main'));
+}
+function toggleSelectAll(){
+  const ids = SUBMISSIONS_CACHE.map(s => s.id);
+  const allSelected = ids.length && ids.every(id => SELECTED_SUBMISSIONS.has(id));
+  if (allSelected) { SELECTED_SUBMISSIONS.clear(); }
+  else { ids.forEach(id => SELECTED_SUBMISSIONS.add(id)); }
+  renderSubmissions(document.getElementById('main'));
+}
+
+async function deleteSelectedSubmissions(){
   if (!isAdmin(CURRENT_USER)) { toast('Only admin can delete'); return; }
-  const ok = confirm(`Delete this submission?\n\n${storeName} · ${auditDate}\n\nThis removes the audit from the database AND from the Google Sheet. This cannot be undone.`);
+  const ids = [...SELECTED_SUBMISSIONS];
+  if (!ids.length) { toast('Pick at least one'); return; }
+  const ok = confirm(`Delete ${ids.length} submission${ids.length>1?'s':''}?\n\nThis removes the audit${ids.length>1?'s':''} from the database AND from the Google Sheet. This cannot be undone.`);
   if (!ok) return;
   toast('Deleting…');
-  const r = await api('POST', '/api/audits?action=delete-session', { sessionId });
+  const r = await api('POST', '/api/audits?action=delete-sessions', { sessionIds: ids });
   if (!r || !r.success) { toast('Delete failed: ' + (r && r.error ? r.error : 'unknown')); return; }
-  toast(`Deleted ✓ · ${r.sheetRowsDeleted || 0} sheet rows removed`);
-  /* Refresh the list */
+  toast(`Deleted ${r.deleted || 0} ✓ · ${r.sheetRowsDeleted || 0} sheet rows removed`);
+  SELECTED_SUBMISSIONS.clear();
+  SUBMISSION_SELECT_MODE = false;
   renderSubmissions(document.getElementById('main'));
 }
 let DETAIL_ANSWERS = []; // populated by renderSubmissionDetail for follow-up UI
