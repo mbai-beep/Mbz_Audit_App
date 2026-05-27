@@ -1089,28 +1089,33 @@ async function handleFiles(id, fileList){
   const free = Math.max(0, 3 - SESSION.responses[id].photos.length);
   const files = [...fileList].filter(f => /^image\//.test(f.type)).slice(0, free);
   if(!files.length){ toast('Up to 3 photos'); return; }
+  if(!SESSION.storeCode){ toast('Pick a store first'); return; }
   SESSION.responses[id].uploading = true;
   renderAuditForm(document.getElementById('main'));
-  /* Parallel upload — Promise.all is dramatically faster than sequential for 2-3 photos */
+  /* Parallel upload — Promise.all is dramatically faster than sequential for 2-3 photos.
+     Sends storeCode + phase so Drive lands the file in <root>/<store>/Pre_Audit/. */
   const results = await Promise.all(files.map(async f => {
     try {
       const dataUri = await fileToDataURI(f);
       const r = await api('POST', '/api/upload', {
         fileData: dataUri,
-        fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_${id}_${Date.now()}_${f.name||'photo.jpg'}`,
-        mimeType: f.type || 'image/jpeg'
+        fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_q${id}_${Date.now()}_${(f.name||'photo.jpg').replace(/\s+/g,'_')}`,
+        mimeType: f.type || 'image/jpeg',
+        storeCode: SESSION.storeCode,
+        phase: 'Pre_Audit'
       });
-      return r && r.url ? { ok:true, url:r.url, fileId:r.fileId } : { ok:false, err:(r&&r.error)||'unknown' };
+      return (r && r.success && r.url) ? { ok:true, url:r.url, fileId:r.fileId } : { ok:false, err:(r&&r.error)||'unknown' };
     } catch (e) { return { ok:false, err:e.message }; }
   }));
-  let added = 0, failed = 0;
+  let added = 0, failed = 0, lastErr = '';
   for (const r of results) {
     if (r.ok) { SESSION.responses[id].photos.push({ id:'img-'+Date.now()+'-'+Math.random().toString(36).slice(2,5), url:r.url, fileId:r.fileId }); added++; }
-    else failed++;
+    else { failed++; lastErr = r.err || lastErr; }
   }
   SESSION.responses[id].uploading = false;
   renderAuditForm(document.getElementById('main'));
-  if (failed) toast(`${added} added · ${failed} failed`); else toast(`${added} photo${added>1?'s':''} added ✓`);
+  if (failed) toast(`${added} added · ${failed} failed${lastErr ? ' — '+lastErr : ''}`);
+  else toast(`${added} photo${added>1?'s':''} uploaded ✓`);
 }
 function rmPhoto(id, idx){ SESSION.responses[id].photos.splice(idx,1); renderAuditForm(document.getElementById('main')); }
 /* Voice notes feature removed per spec (photo evidence only). */
@@ -1201,12 +1206,28 @@ async function finishAudit(pct, grade, pass){
     return;
   }
 
-  /* 3) Submit (also triggers Google Sheets append) */
+  /* 3) Build per-item answer details for the single "Audits" sheet
+     (one row per Yes/No item; backend filters Pending out) */
+  const answerDetails = ITEMS.map(it => {
+    const r = SESSION.responses[it.id] || {};
+    const sec = SECTIONS.find(s => s.id === it.sec);
+    return {
+      itemId: it.id,
+      title: it.title,
+      section: sec ? sec.name : '',
+      status: r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending'),
+      remarks: r.remarks || '',
+      photoUrls: (r.photos || []).map(p => p.url).filter(Boolean)
+    };
+  });
+
+  /* 4) Submit (triggers single-tab Google Sheets append — Yes/No rows with denormalized session info) */
   const subR = await api('POST', '/api/audits?action=submit', {
     sessionId,
     managerName: store.manager || '',
     thumbnailUrls: thumbs,
-    audioUrls: []
+    audioUrls: [],
+    answerDetails
   });
   if (!subR || !subR.success) {
     toast('Submit failed: ' + (subR && subR.error ? subR.error : 'unknown'));
@@ -1270,9 +1291,12 @@ async function renderSubmissions(host){
         </div>`).join('')}
   `;
 }
-function renderSubmissionDetail(host){
+let DETAIL_ANSWERS = []; // populated by renderSubmissionDetail for follow-up UI
+
+async function renderSubmissionDetail(host){
   const s = SUBMISSIONS_CACHE.find(x => x.id === DETAIL_ID);
   if(!s){ go('submissions'); return; }
+
   host.innerHTML = `
     <button class="btn ghost sm" onclick="go('submissions')" style="margin-bottom:10px;display:inline-flex">← Back</button>
     <div class="result-hero">
@@ -1290,13 +1314,120 @@ function renderSubmissionDetail(host){
         ${s.submitted_at?`<div><b>Submitted:</b> ${s.submitted_at}</div>`:''}
       </div>
     </div>
-    ${s.thumbs.length ? `<div class="card"><h2>Photo evidence (${s.thumbs.length})</h2>
+    <div id="followupHost" class="empty"><div class="ic">⏳</div><b>Loading follow-up items…</b></div>
+  `;
+
+  /* Pull the full per-item detail (sheet has fix flags) */
+  const r = await api('GET', `/api/audits?action=session-detail&id=${encodeURIComponent(s.id)}`);
+  if (!r || !r.success) {
+    document.getElementById('followupHost').innerHTML =
+      `<div class="empty"><div class="ic">⚠️</div><b>Could not load details</b><p>${(r && r.error) || 'Try again'}</p></div>`;
+    return;
+  }
+  DETAIL_ANSWERS = r.answers || [];
+  renderFollowUpPanel(s);
+}
+
+function renderFollowUpPanel(s){
+  const host = document.getElementById('followupHost');
+  if (!host) return;
+  const noItems = DETAIL_ANSWERS.filter(a => a.status === 'No');
+  const fixedCount = noItems.filter(a => a.fixed).length;
+  const pendingCount = noItems.length - fixedCount;
+  const priv = isAdminish(CURRENT_USER); // admin/manager/owner
+
+  /* Original photo evidence (kept as a section at the top) */
+  let html = '';
+  if (s.thumbs && s.thumbs.length) {
+    html += `<div class="card"><h2>Photo evidence (${s.thumbs.length})</h2>
       <div class="thumbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
         ${s.thumbs.map(t=>`<div class="th" style="width:90px;height:90px;border-radius:10px;background:#e9eaf0 center/cover no-repeat;border:1px solid var(--line);cursor:pointer;overflow:hidden" onclick="openLightbox('${t}')"><img src="${t}" alt="" style="width:100%;height:100%;object-fit:cover" /></div>`).join('')}
       </div>
-      <div class="hint" style="font-size:12px;color:var(--mute);margin-top:8px">Tap any photo to view fullscreen.</div>
-    </div>`:''}
-  `;
+    </div>`;
+  }
+
+  if (!noItems.length) {
+    html += `<div class="card"><h2>Follow-up</h2><div class="sub">No "No" items in this audit. 🎉</div></div>`;
+    host.outerHTML = html;
+    return;
+  }
+
+  html += `
+    <div class="card">
+      <h2>Follow-up on "No" items</h2>
+      <div class="sub" style="font-size:13px;margin-bottom:10px">
+        ${noItems.length} item${noItems.length>1?'s':''} failed · ${fixedCount} fixed · ${pendingCount} pending
+        ${!priv ? '<br><span style="color:var(--mute)">Only admin/manager/owner can mark items as fixed.</span>' : ''}
+      </div>
+      ${noItems.map((a, idx) => renderNoItemRow(a, s, idx, priv)).join('')}
+    </div>`;
+  host.outerHTML = html;
+}
+
+function renderNoItemRow(a, s, idx, priv){
+  const photos = Array.isArray(a.photos) ? a.photos : [];
+  return `
+    <div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:${a.fixed?'#F0F9F4':'#FFF7F7'}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="font-size:22px;line-height:1">${a.fixed ? '✅' : '❌'}</div>
+        <div style="flex:1;min-width:0">
+          <b>${a.title || ('Item #'+a.item_id)}</b>
+          <div class="sub" style="font-size:12px;margin-top:2px">${a.section || ''}</div>
+          ${a.remarks ? `<div class="sub" style="font-size:13px;margin-top:6px"><b>Remarks:</b> ${a.remarks}</div>` : ''}
+          ${photos.length ? `<div class="thumbs" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            ${photos.map(p => `<div class="th" style="width:56px;height:56px;border-radius:8px;background:#e9eaf0 center/cover no-repeat;border:1px solid var(--line);cursor:pointer;overflow:hidden" onclick="openLightbox('${p}')"><img src="${p}" style="width:100%;height:100%;object-fit:cover"/></div>`).join('')}
+            <div class="sub" style="align-self:center;font-size:11px;color:var(--mute);margin-left:6px">Pre-Audit photos</div>
+          </div>`:''}
+          ${a.fixed ? `
+            <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2)">
+              <b style="color:#0F7A51">Fixed ✓</b>
+              <div class="sub" style="font-size:12px;margin-top:2px">By ${a.fixed_by_name || '—'} · ${a.fixed_at || ''}</div>
+              ${a.post_audit_photo ? `<div class="thumbs" style="margin-top:6px"><div class="th" style="width:84px;height:84px;border-radius:8px;background:#e9eaf0 center/cover no-repeat;border:1px solid var(--line);cursor:pointer;overflow:hidden" onclick="openLightbox('${a.post_audit_photo}')"><img src="${a.post_audit_photo}" style="width:100%;height:100%;object-fit:cover"/></div><div class="sub" style="align-self:center;font-size:11px;color:var(--mute);margin-left:6px">Post-Audit photo</div></div>` : ''}
+            </div>` : (priv ? `
+            <div style="margin-top:10px">
+              <input type="file" id="fix-file-${a.item_id}" accept="image/*" style="display:none" onchange="uploadFixPhoto('${s.id}', ${a.item_id}, '${s.store_code}', this.files)" />
+              <button class="btn sm" id="fix-btn-${a.item_id}" onclick="document.getElementById('fix-file-${a.item_id}').click()">📸 Mark as Fixed (upload Post-Audit photo)</button>
+            </div>` : '')}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function uploadFixPhoto(sessionId, itemId, storeCode, fileList){
+  const f = [...fileList].filter(x => /^image\//.test(x.type))[0];
+  if (!f) { toast('Pick an image'); return; }
+  const btn = document.getElementById('fix-btn-' + itemId);
+  const restore = btnLoad(btn, 'Uploading…');
+  try {
+    const dataUri = await fileToDataURI(f);
+    const up = await api('POST', '/api/upload', {
+      fileData: dataUri,
+      fileName: `fix_${CURRENT_USER.emp_code}_${storeCode}_q${itemId}_${Date.now()}_${(f.name||'fix.jpg').replace(/\s+/g,'_')}`,
+      mimeType: f.type || 'image/jpeg',
+      storeCode: storeCode,
+      phase: 'Post_Audit'
+    });
+    if (!up || !up.success || !up.url) { toast('Upload failed: ' + (up && up.error ? up.error : 'unknown')); return; }
+    const mk = await api('POST', '/api/audits?action=mark-fixed', {
+      sessionId, itemId, postPhotoUrl: up.url
+    });
+    if (!mk || !mk.success) { toast('Mark-fixed failed: ' + (mk && mk.error ? mk.error : 'unknown')); return; }
+    /* Refresh detail */
+    toast('Marked as fixed ✓');
+    const r = await api('GET', `/api/audits?action=session-detail&id=${encodeURIComponent(sessionId)}`);
+    if (r && r.success) {
+      DETAIL_ANSWERS = r.answers || [];
+      const s = SUBMISSIONS_CACHE.find(x => x.id === sessionId);
+      if (s) {
+        /* Re-render in place — replace the followupHost block */
+        const main = document.getElementById('main');
+        /* Easiest: re-run renderSubmissionDetail to refresh the whole view */
+        renderSubmissionDetail(main);
+      }
+    }
+  } finally {
+    restore();
+  }
 }
 
 /* ╔══════════════════════════════════════════════════════════╗

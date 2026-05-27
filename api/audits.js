@@ -1,6 +1,13 @@
 const { getDB, ensureTable } = require('./_db');
 const jwt = require('jsonwebtoken');
-const { appendAuditRow } = require('./_sheets');
+const {
+  appendAuditData,
+  markAnswerFixed,
+  readAuditAnswersBySession
+} = require('./_sheets');
+
+/* Privileged roles allowed to mark No items as fixed in follow-up */
+const PRIV_ROLES = ['admin', 'manager', 'owner'];
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mb-customer-req-2024-secret';
 const CORS = {
@@ -331,7 +338,7 @@ async function handle(req, res) {
 
   /* ── POST ?action=submit — close session ───────────────── */
   if (action === 'submit' && req.method === 'POST') {
-    const { sessionId, managerName, thumbnailUrls, audioUrls } = req.body || {};
+    const { sessionId, managerName, thumbnailUrls, audioUrls, answerDetails } = req.body || {};
     if (!sessionId) return res.json({ success: false, error: 'sessionId required' });
     const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [sessionId] });
     if (!s.rows.length) return res.json({ success: false, error: 'Not found' });
@@ -370,16 +377,94 @@ async function handle(req, res) {
     });
     const updated = await loadSessionRow(db, sessionId);
 
-    /* Append to Google Sheets — failures are logged but never break submit. */
+    /* ── Sheets: single-tab write — one row per Yes/No answer, with the
+       session summary fields denormalized on each row. Pending skipped.
+       Failure is logged but never breaks the submit response. */
     let sheetsAppended = false;
-    try { sheetsAppended = await appendAuditRow(updated); }
-    catch (e) { console.error('[audits.submit] sheets append threw:', e.message); }
+    try {
+      sheetsAppended = await appendAuditData(
+        updated,
+        Array.isArray(answerDetails) ? answerDetails : [],
+        { driveFolder: (updated && updated.store_code) || '' }
+      );
+    } catch (e) { console.error('[audits.submit] appendAuditData:', e.message); }
 
     return res.json({
       success: true,
       session: updated ? mapSession(updated) : null,
       sheetsAppended
     });
+  }
+
+  /* ── GET ?action=session-detail&id=... — for follow-up UI ──
+     Returns the session row + answers WITH section/title joined in,
+     plus the Sheets-side fix status for No items. */
+  if (action === 'session-detail' && req.method === 'GET') {
+    const { id } = req.query;
+    if (!id) return res.json({ success: false, error: 'id required' });
+    const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [id] });
+    if (!s.rows.length) return res.json({ success: false, error: 'Session not found' });
+
+    const ans = await db.execute({
+      sql: 'SELECT * FROM audit_answers WHERE session_id = ?',
+      args: [id]
+    });
+    /* Join checklist_items to surface action_text + area_tag */
+    const its = await db.execute('SELECT id, area_tag, action_text FROM checklist_items');
+    const byId = {};
+    for (const r of (its.rows || [])) byId[r.id] = r;
+
+    /* Pull Sheets-side fix flags for No items */
+    let sheetAnswers = [];
+    try { sheetAnswers = await readAuditAnswersBySession(id); }
+    catch (e) { console.error('[audits.session-detail] sheets read:', e.message); }
+    const sheetByItemId = {};
+    for (const sa of sheetAnswers) sheetByItemId[sa.item_id] = sa;
+
+    const answers = (ans.rows || []).map(a => {
+      const meta = byId[a.item_id] || {};
+      const sheetFix = sheetByItemId[a.item_id] || {};
+      let photos = [];
+      try { photos = JSON.parse(a.photo_urls || '[]'); } catch (_) {}
+      return {
+        item_id: a.item_id,
+        status: a.status,
+        remarks: a.remarks || '',
+        photos,
+        section: meta.area_tag || '',
+        title: meta.action_text || '',
+        fixed: !!sheetFix.fixed,
+        post_audit_photo: sheetFix.post_audit_photo || '',
+        fixed_at: sheetFix.fixed_at || '',
+        fixed_by_name: sheetFix.fixed_by_name || ''
+      };
+    });
+
+    return res.json({
+      success: true,
+      session: mapSession(s.rows[0]),
+      answers
+    });
+  }
+
+  /* ── POST ?action=mark-fixed — admin/manager/owner marks No item as fixed ─ */
+  if (action === 'mark-fixed' && req.method === 'POST') {
+    if (!PRIV_ROLES.includes(user.role)) {
+      return res.status(403).json({ success: false, error: 'Only admin/manager/owner can mark fixed' });
+    }
+    const { sessionId, itemId, postPhotoUrl } = req.body || {};
+    if (!sessionId || !itemId || !postPhotoUrl) {
+      return res.json({ success: false, error: 'sessionId, itemId and postPhotoUrl required' });
+    }
+    const r = await markAnswerFixed({
+      sessionId,
+      itemId,
+      postPhotoUrl,
+      fixedByCode: user.empCode,
+      fixedByName: user.empName || '',
+      fixedAt: nowIST()
+    });
+    return res.json(r);
   }
 
   /* ── GET ?action=list — recent sessions, scoped by role ─ */
