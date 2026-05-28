@@ -609,6 +609,27 @@ const SESSION = {pageIdx:0, idx:0, storeCode:'', date:TODAY, responses:{}, pageP
 const MAX_PHOTOS_PER_PAGE = 5;
 const PHOTO_QUALITY = 0.70; // 70% — middle of the 60–80% range per spec
 
+/* Cache of resolved Drive folder IDs per (storeCode|phase). Populated by
+   ensureDriveFolder() before any parallel upload — guarantees ALL photos
+   for a given (store, phase) land in ONE folder, not 5 duplicate ones. */
+const DRIVE_FOLDER_CACHE = new Map();
+
+async function ensureDriveFolder(storeCode, phase){
+  const key = `${storeCode}|${phase}`;
+  if (DRIVE_FOLDER_CACHE.has(key)) return DRIVE_FOLDER_CACHE.get(key);
+  /* Cache the PROMISE so concurrent callers share a single round-trip */
+  const p = (async () => {
+    const r = await api('POST', '/api/upload?action=ensure-folder', { storeCode, phase });
+    if (!r || !r.success || !r.folderId) {
+      throw new Error((r && r.error) || 'ensure-folder failed');
+    }
+    return r.folderId;
+  })();
+  DRIVE_FOLDER_CACHE.set(key, p);
+  p.catch(() => DRIVE_FOLDER_CACHE.delete(key));
+  return p;
+}
+
 function isAdminish(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
 function canAccessAdmin(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
 function isAdmin(u){ return u && u.role === 'admin'; }
@@ -1187,7 +1208,18 @@ async function handlePagePhoto(sectionId, fileList){
   SESSION.pagePhotos[sectionId].uploading = true;
   renderAuditForm(document.getElementById('main'));
 
-  /* Parallel upload — compress to ~70% then send to Drive */
+  /* Resolve the leaf Drive folder ONCE so all parallel uploads share it
+     (eliminates duplicate-folder races). */
+  let folderId;
+  try { folderId = await ensureDriveFolder(SESSION.storeCode, 'Pre_Audit'); }
+  catch (e) {
+    SESSION.pagePhotos[sectionId].uploading = false;
+    renderAuditForm(document.getElementById('main'));
+    toast('Folder setup failed: ' + e.message);
+    return;
+  }
+
+  /* Parallel upload — compress to ~70% then send to Drive (shared folderId) */
   const results = await Promise.all(files.map(async f => {
     try {
       const compressed = await compressImage(f, { maxDim: 1600, quality: PHOTO_QUALITY });
@@ -1196,8 +1228,7 @@ async function handlePagePhoto(sectionId, fileList){
         fileData: dataUri,
         fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_sec${sectionId}_${Date.now()}_${(compressed.name||'page.jpg').replace(/\s+/g,'_')}`,
         mimeType: compressed.type || 'image/jpeg',
-        storeCode: SESSION.storeCode,
-        phase: 'Pre_Audit'
+        folderId
       });
       return (r && r.success && r.url) ? { ok:true, url:r.url, fileId:r.fileId } : { ok:false, err:(r&&r.error)||'unknown' };
     } catch (e) { return { ok:false, err:e.message }; }
@@ -1632,14 +1663,15 @@ async function uploadFixPhoto(sessionId, itemId, storeCode, fileList){
   const btn = document.getElementById('fix-btn-' + itemId);
   const restore = btnLoad(btn, 'Uploading…');
   try {
-    const f = await compressImage(original, { maxDim: 1600, quality: 0.85 });
+    /* Pre-resolve the Post_Audit folder so we never race-create duplicates */
+    const folderId = await ensureDriveFolder(storeCode, 'Post_Audit');
+    const f = await compressImage(original, { maxDim: 1600, quality: PHOTO_QUALITY });
     const dataUri = await fileToDataURI(f);
     const up = await api('POST', '/api/upload', {
       fileData: dataUri,
       fileName: `fix_${CURRENT_USER.emp_code}_${storeCode}_q${itemId}_${Date.now()}_${(f.name||'fix.jpg').replace(/\s+/g,'_')}`,
       mimeType: f.type || 'image/jpeg',
-      storeCode: storeCode,
-      phase: 'Post_Audit'
+      folderId
     });
     if (!up || !up.success || !up.url) { toast('Upload failed: ' + (up && up.error ? up.error : 'unknown')); return; }
     const mk = await api('POST', '/api/audits?action=mark-fixed', {

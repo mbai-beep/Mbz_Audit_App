@@ -1,67 +1,93 @@
 /* Google Drive upload (Shared Drive) — organizes files into
    <ROOT>/<storeCode>/<phase>/<filename>
-   where phase ∈ { 'Pre_Audit', 'Post_Audit' }. Auto-creates folders
-   on first use, caches IDs per cold start. */
+   where phase ∈ { 'Pre_Audit', 'Post_Audit' }.
 
-const { getAccessToken, googleFetch } = require('./_google');
+   Two action modes:
+   - default (POST /api/upload)
+       Body: { fileData, fileName, mimeType, storeCode, phase, folderId? }
+       Uploads the file. If folderId is provided, uses it directly. Otherwise
+       resolves <root>/<storeCode>/<phase>/ creating folders if missing.
+   - ?action=ensure-folder
+       Body: { storeCode, phase }
+       Returns { success, folderId } without uploading. Call this ONCE before
+       a batch of parallel uploads so all uploads share the same folder
+       (prevents duplicate-folder races).
+
+   Race-safety:
+   - In-process promise cache so concurrent calls share a single lookup.
+   - When multiple folders with the same name exist (legacy duplicates),
+     the OLDEST one (by createdTime) is always picked — so subsequent
+     uploads converge to a single canonical folder.
+*/
+
+const { getAccessToken } = require('./_google');
 const SCOPE = 'https://www.googleapis.com/auth/drive';
 
-/* In-memory folder cache, keyed by "parentId/folderName". Reset per cold start. */
-const FOLDER_CACHE = new Map();
+/* Promise cache survives only inside one warm Lambda instance. The
+   "ensure-folder" action in front of Promise.all is what fully prevents
+   the multi-instance race. */
+const FOLDER_PROMISE_CACHE = new Map();
 
 async function findOrCreateFolder(parentId, folderName, token) {
   const cacheKey = `${parentId}/${folderName}`;
-  if (FOLDER_CACHE.has(cacheKey)) return FOLDER_CACHE.get(cacheKey);
+  if (FOLDER_PROMISE_CACHE.has(cacheKey)) return FOLDER_PROMISE_CACHE.get(cacheKey);
 
-  /* Search for existing folder */
-  const q = encodeURIComponent(
-    `name='${String(folderName).replace(/'/g, "\\'")}' and ` +
-    `mimeType='application/vnd.google-apps.folder' and ` +
-    `'${parentId}' in parents and trashed=false`
-  );
-  const searchUrl =
-    `https://www.googleapis.com/drive/v3/files?q=${q}` +
-    `&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
-  const sr = await fetch(searchUrl, { headers: { Authorization: `Bearer ${token}` } });
-  if (!sr.ok) {
-    const t = await sr.text().catch(() => '');
-    throw new Error(`Drive folder search ${sr.status}: ${t.slice(0, 300)}`);
-  }
-  const sdata = await sr.json();
-  if (sdata.files && sdata.files.length) {
-    const id = sdata.files[0].id;
-    FOLDER_CACHE.set(cacheKey, id);
+  const promise = (async () => {
+    /* Search WITH orderBy=createdTime ascending — picks the oldest match.
+       This is the convergence guarantee: even if duplicates exist, every
+       future upload routes to the same (oldest) folder. */
+    const q = encodeURIComponent(
+      `name='${String(folderName).replace(/'/g, "\\'")}' and ` +
+      `mimeType='application/vnd.google-apps.folder' and ` +
+      `'${parentId}' in parents and trashed=false`
+    );
+    const searchUrl =
+      `https://www.googleapis.com/drive/v3/files?q=${q}` +
+      `&fields=files(id,name,createdTime)` +
+      `&orderBy=createdTime` +
+      `&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
+    const sr = await fetch(searchUrl, { headers: { Authorization: `Bearer ${token}` } });
+    if (!sr.ok) {
+      const t = await sr.text().catch(() => '');
+      throw new Error(`Drive folder search ${sr.status}: ${t.slice(0, 300)}`);
+    }
+    const sdata = await sr.json();
+    if (sdata.files && sdata.files.length) {
+      return sdata.files[0].id; // oldest match
+    }
+
+    /* Create it */
+    const createUrl = 'https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id';
+    const cr = await fetch(createUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentId]
+      })
+    });
+    if (!cr.ok) {
+      const t = await cr.text().catch(() => '');
+      throw new Error(`Drive folder create ${cr.status}: ${t.slice(0, 300)}`);
+    }
+    const { id } = await cr.json();
     return id;
-  }
+  })();
 
-  /* Create it */
-  const createUrl = 'https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id';
-  const cr = await fetch(createUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: [parentId]
-    })
-  });
-  if (!cr.ok) {
-    const t = await cr.text().catch(() => '');
-    throw new Error(`Drive folder create ${cr.status}: ${t.slice(0, 300)}`);
-  }
-  const { id } = await cr.json();
-  FOLDER_CACHE.set(cacheKey, id);
-  return id;
+  FOLDER_PROMISE_CACHE.set(cacheKey, promise);
+  /* Failures invalidate the cache so the next call can retry */
+  promise.catch(() => FOLDER_PROMISE_CACHE.delete(cacheKey));
+  return promise;
 }
 
-/* Resolves the leaf folder (<ROOT>/<storeCode>/<phase>) — creates missing levels */
 async function resolveTargetFolder(token, storeCode, phase) {
   const root = process.env.GOOGLE_DRIVE_FOLDER_ID;
   if (!root) throw new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
-  if (!storeCode) return root; // legacy fallback: dump at root
+  if (!storeCode) return root; // legacy fallback
   const safeStore = String(storeCode).replace(/[\\\/]/g, '_').trim() || 'unknown_store';
   const safePhase = (String(phase || 'Pre_Audit').replace(/[\\\/]/g, '_').trim() === 'Post_Audit') ? 'Post_Audit' : 'Pre_Audit';
   const storeFolderId = await findOrCreateFolder(root, safeStore, token);
@@ -77,28 +103,41 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {
-    const { fileData, fileName, mimeType, storeCode, phase } = req.body || {};
+    const action = (req.query && req.query.action) || '';
+
+    /* ── ensure-folder: returns the leaf folder ID without uploading ─── */
+    if (action === 'ensure-folder') {
+      const { storeCode, phase } = req.body || {};
+      if (!storeCode) return res.status(400).json({ success: false, error: 'storeCode required' });
+      const token = await getAccessToken(SCOPE);
+      const folderId = await resolveTargetFolder(token, storeCode, phase);
+      return res.status(200).json({ success: true, folderId });
+    }
+
+    /* ── default: upload a file ───────────────────────────────────── */
+    const { fileData, fileName, mimeType, storeCode, phase, folderId: providedFolderId } = req.body || {};
     if (!fileData || !fileName) {
       return res.status(400).json({ success: false, error: 'Missing fileData or fileName' });
     }
 
     const base64Data = fileData.includes(',') ? fileData.split(',')[1] : fileData;
     const buffer = Buffer.from(base64Data, 'base64');
-
     const token = await getAccessToken(SCOPE);
 
-    /* Resolve the target folder (<root>/<storeCode>/<phase>) — auto-creates if needed */
-    let folderId;
-    try {
-      folderId = await resolveTargetFolder(token, storeCode, phase);
-    } catch (e) {
-      console.error('[upload] folder resolve failed:', e.message);
-      return res.status(500).json({ success: false, error: 'Folder setup failed: ' + e.message });
+    /* Use provided folderId (fast path — no races) OR resolve fresh */
+    let folderId = providedFolderId;
+    if (!folderId) {
+      try {
+        folderId = await resolveTargetFolder(token, storeCode, phase);
+      } catch (e) {
+        console.error('[upload] folder resolve failed:', e.message);
+        return res.status(500).json({ success: false, error: 'Folder setup failed: ' + e.message });
+      }
     }
 
     const ct = mimeType || 'application/octet-stream';
 
-    /* Multipart upload: metadata JSON + binary body */
+    /* Multipart upload */
     const boundary = '-------MBZ-' + Date.now().toString(36);
     const meta = JSON.stringify({ name: fileName, mimeType: ct, parents: [folderId] });
     const head = Buffer.from(
@@ -132,16 +171,13 @@ module.exports = async function handler(req, res) {
     }
     const { id: fileId } = await upRes.json();
 
-    /* Make file readable by anyone with the link so thumbnails render */
+    /* Public read-only sharing so thumbnails render in the app */
     try {
       await fetch(
         `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions?supportsAllDrives=true`,
         {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'reader', type: 'anyone' })
         }
       );
