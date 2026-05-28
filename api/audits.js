@@ -35,17 +35,26 @@ function nowIST() {
   return ist.toISOString().replace('Z', '+05:30');
 }
 
+/* Total checklist items per audit, FIXED at 25 (5 sections × 5 sub-questions).
+   The Turso checklist_items table may have more rows because of legacy seed
+   data — we deliberately use 25 to match the frontend ITEMS array. */
+const TOTAL_ITEMS = 25;
+
 function recalc(session, answers) {
-  const total = session.total_items || answers.length;
   let done = 0, pend = 0, notDone = 0;
   for (const a of answers) {
     const s = a.status || 'Pending';
+    /* "Fixed" Nos count as Yes for compliance (spec) */
+    const isFixed = Number(a.fixed || 0) === 1;
     if (s === 'Done' || s === 'Yes') done++;
+    else if ((s === 'No' || s === 'Not Done') && isFixed) done++;
     else if (s === 'No' || s === 'Not Done') notDone++;
     else pend++;
   }
+  /* Total is the canonical 25; if the session has a stored override we honour it */
+  const total = Number(session.total_items) === TOTAL_ITEMS ? TOTAL_ITEMS : TOTAL_ITEMS;
   const pct = total > 0 ? Math.round((done / total) * 1000) / 10 : 0;
-  return { done, pend, notDone, pct };
+  return { done, pend, notDone, pct, total };
 }
 
 /* Return snake_case session rows (matches the raw DB shape the frontend renders) */
@@ -171,6 +180,8 @@ async function handle(req, res) {
       const nowStr = nowIST();
 
       stage = 'insert-session';
+      /* total_items is hard-coded to TOTAL_ITEMS (25) — matches the frontend ITEMS array.
+         The Turso checklist_items table may contain legacy/parent rows we shouldn't count. */
       await db.execute({
         sql: `INSERT INTO audit_sessions
               (id, store_code, store_name, audit_date, manager_name,
@@ -180,7 +191,7 @@ async function handle(req, res) {
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'in_progress', ?, ?, 0, ?, 0, 0)`,
         args: [sessionId, String(storeCode), String(storeName || ''), dt, String(managerName || ''),
                Number(empCode), String((user && user.empName) || ''), String((user && user.role) || 'auditor'),
-               nowStr, itemRows.length, itemRows.length]
+               nowStr, TOTAL_ITEMS, TOTAL_ITEMS]
       });
 
       stage = 'seed-answers';
@@ -267,7 +278,7 @@ async function handle(req, res) {
 
     // Recalculate roll-up counts
     const ans = await db.execute({
-      sql: 'SELECT status FROM audit_answers WHERE session_id = ?', args: [sessionId]
+      sql: 'SELECT status, fixed FROM audit_answers WHERE session_id = ?', args: [sessionId]
     });
     const { done, pend, notDone, pct } = recalc(session, ans.rows);
     await db.execute({
@@ -321,7 +332,7 @@ async function handle(req, res) {
 
     /* Roll up counts once at the end */
     const ar = await db.execute({
-      sql: 'SELECT status FROM audit_answers WHERE session_id = ?', args: [sessionId]
+      sql: 'SELECT status, fixed FROM audit_answers WHERE session_id = ?', args: [sessionId]
     });
     const { done, pend, notDone, pct } = recalc(session, ar.rows);
     await db.execute({
@@ -371,11 +382,24 @@ async function handle(req, res) {
       sql: `UPDATE audit_sessions
             SET status = 'submitted', submitted_at = ?,
                 manager_name = COALESCE(NULLIF(?, ''), manager_name),
-                thumbnail_urls = ?, audio_urls = ?
+                thumbnail_urls = ?, audio_urls = ?,
+                total_items = ?
             WHERE id = ?`,
       args: [nowIST(), managerName || '',
-             JSON.stringify(thumbs), JSON.stringify(audios), sessionId]
+             JSON.stringify(thumbs), JSON.stringify(audios), TOTAL_ITEMS, sessionId]
     });
+    /* Recompute compliance now that total_items is canonical 25 */
+    try {
+      const ar = await db.execute({
+        sql: 'SELECT status, fixed FROM audit_answers WHERE session_id = ?', args: [sessionId]
+      });
+      const tmpSession = (await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [sessionId] })).rows[0];
+      const { done, pend, notDone, pct } = recalc(tmpSession || { total_items: TOTAL_ITEMS }, ar.rows);
+      await db.execute({
+        sql: 'UPDATE audit_sessions SET done_count = ?, pending_count = ?, not_done_count = ?, compliance_pct = ? WHERE id = ?',
+        args: [done, pend, notDone, pct, sessionId]
+      });
+    } catch (e) { console.error('[submit] recompute:', e.message); }
     const updated = await loadSessionRow(db, sessionId);
 
     /* ── Sheets: single-tab write — one row per Yes/No answer, with the
@@ -448,7 +472,11 @@ async function handle(req, res) {
     });
   }
 
-  /* ── POST ?action=mark-fixed — admin/manager/owner marks No item as fixed ─ */
+  /* ── POST ?action=mark-fixed — admin/manager/owner marks No item as fixed ─
+     Effects:
+       1. Sheets — set Fixed=1 + Post-Audit Photo URL + Fixed At + Fixed By
+       2. Turso audit_answers — set fixed=1 (counted as Yes in compliance)
+       3. Turso audit_sessions — recompute done/notDone/pending/compliance_pct */
   if (action === 'mark-fixed' && req.method === 'POST') {
     if (!PRIV_ROLES.includes(user.role)) {
       return res.status(403).json({ success: false, error: 'Only admin/manager/owner can mark fixed' });
@@ -457,7 +485,9 @@ async function handle(req, res) {
     if (!sessionId || !itemId || !postPhotoUrl) {
       return res.json({ success: false, error: 'sessionId, itemId and postPhotoUrl required' });
     }
-    const r = await markAnswerFixed({
+
+    /* 1) Update Sheets */
+    const sheetR = await markAnswerFixed({
       sessionId,
       itemId,
       postPhotoUrl,
@@ -465,7 +495,31 @@ async function handle(req, res) {
       fixedByName: user.empName || '',
       fixedAt: nowIST()
     });
-    return res.json(r);
+
+    /* 2) Update Turso audit_answers.fixed = 1 */
+    try {
+      await db.execute({
+        sql: 'UPDATE audit_answers SET fixed = 1, updated_at = ? WHERE session_id = ? AND item_id = ?',
+        args: [nowIST(), String(sessionId), Number(itemId)]
+      });
+    } catch (e) { console.error('[mark-fixed] turso flag:', e.message); }
+
+    /* 3) Recompute and store the new session counts */
+    try {
+      const s = await db.execute({ sql: 'SELECT * FROM audit_sessions WHERE id = ?', args: [String(sessionId)] });
+      if (s.rows && s.rows.length) {
+        const ar = await db.execute({
+          sql: 'SELECT status, fixed FROM audit_answers WHERE session_id = ?', args: [String(sessionId)]
+        });
+        const { done, pend, notDone, pct } = recalc(s.rows[0], ar.rows);
+        await db.execute({
+          sql: 'UPDATE audit_sessions SET total_items = ?, done_count = ?, pending_count = ?, not_done_count = ?, compliance_pct = ? WHERE id = ?',
+          args: [TOTAL_ITEMS, done, pend, notDone, pct, String(sessionId)]
+        });
+      }
+    } catch (e) { console.error('[mark-fixed] recalc:', e.message); }
+
+    return res.json(sheetR);
   }
 
   /* ── POST ?action=delete-session — admin only ────────────

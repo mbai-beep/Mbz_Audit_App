@@ -133,9 +133,12 @@ async function _doEnsureTable() {
     completed_at TEXT DEFAULT '',
     photo_urls TEXT DEFAULT '[]',
     updated_at TEXT,
+    fixed INTEGER DEFAULT 0,
     UNIQUE(session_id, item_id)
   )`);
   try { await d.execute('CREATE INDEX IF NOT EXISTS idx_aa_session ON audit_answers(session_id)'); } catch(e) {}
+  /* Safe migration for older installs that don't have the fixed column */
+  try { await d.execute('ALTER TABLE audit_answers ADD COLUMN fixed INTEGER DEFAULT 0'); } catch(e) {}
 
   /* Auto-seed showrooms + checklist on first run */
   await seedIfEmpty(d);

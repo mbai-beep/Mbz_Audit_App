@@ -603,9 +603,11 @@ let SUBMISSIONS_CACHE = [];    // loaded by submissions tab from /api/audits?act
 /* SESSION model:
    - pageIdx (0..4) — which of the 5 section-pages the user is on
    - responses[itemId] = { pass, remarks } — per sub-question state
-   - pagePhotos[sectionId] = { url, fileId, uploading } — mandatory page photo
+   - pagePhotos[sectionId] = { photos: [{url,fileId},...], uploading } — multiple page photos
 */
 const SESSION = {pageIdx:0, idx:0, storeCode:'', date:TODAY, responses:{}, pagePhotos:{}, sessionId:null};
+const MAX_PHOTOS_PER_PAGE = 5;
+const PHOTO_QUALITY = 0.70; // 70% — middle of the 60–80% range per spec
 
 function isAdminish(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
 function canAccessAdmin(u){ return u && PRIVILEGED_ROLES.includes(u.role); }
@@ -1048,7 +1050,7 @@ function pickStore(code){
   SESSION.pagePhotos = {};
   SESSION.sessionId = null;
   ITEMS.forEach(it => SESSION.responses[it.id] = {pass:null, remarks:''});
-  SECTIONS.forEach(s => SESSION.pagePhotos[s.id] = {url:'', fileId:'', uploading:false});
+  SECTIONS.forEach(s => SESSION.pagePhotos[s.id] = {photos:[], uploading:false});
   go('audit-form');
 }
 /* ── NEW 5-PAGE AUDIT FORM ─────────────────────────────────
@@ -1061,7 +1063,7 @@ function renderAuditForm(host){
   if(!sec){ go('audit-result'); return; }
   const items = ITEMS.filter(it => it.sec === sec.id);
   const total = SECTIONS.length;
-  const pp = SESSION.pagePhotos[sec.id] || {url:'', fileId:'', uploading:false};
+  const pp = SESSION.pagePhotos[sec.id] || {photos:[], uploading:false};
   const store = STORES.find(s => s.code === SESSION.storeCode);
 
   /* Letter labels a..e for sub-items */
@@ -1098,21 +1100,22 @@ function renderAuditForm(host){
           </div>`;
       }).join('')}
 
-      <!-- ── MANDATORY page photo at the bottom of the page ── -->
+      <!-- ── MANDATORY page photos at the bottom of the page ── -->
       <div class="evbox" id="pagePhotoBox">
-        <div class="lbl">📸 <b>Page Photo (mandatory)</b></div>
-        <div class="ev">Capture one representative photo for this section before moving on.</div>
+        <div class="lbl">📸 <b>Page Photos (mandatory — at least 1, up to ${MAX_PHOTOS_PER_PAGE})</b></div>
+        <div class="ev">Capture photos covering this section. Images are compressed to ~${Math.round(PHOTO_QUALITY*100)}% before upload.</div>
         <div class="photoslot">
-          ${pp.url ? `
-            <div class="ph" onclick="openLightbox('${pp.url}')">
-              <img src="${pp.url}" alt=""/>
-              <span class="x" onclick="event.stopPropagation();rmPagePhoto(${sec.id})">×</span>
-            </div>` : `
+          ${(pp.photos||[]).map((ph,i) => `
+            <div class="ph" onclick="openLightbox('${ph.url}')">
+              <img src="${ph.url}" alt=""/>
+              <span class="x" onclick="event.stopPropagation();rmPagePhoto(${sec.id},${i})">×</span>
+            </div>`).join('')}
+          ${(pp.photos||[]).length < MAX_PHOTOS_PER_PAGE ? `
             <div class="add" onclick="document.getElementById('pagefile-${sec.id}').click()">
               <b>＋</b>${pp.uploading ? 'Uploading…' : 'Add Photo'}<br/>
-              <small>Required</small>
-            </div>`}
-          <input type="file" id="pagefile-${sec.id}" accept="image/*" style="display:none" onchange="handlePagePhoto(${sec.id},this.files)" />
+              <small>${(pp.photos||[]).length}/${MAX_PHOTOS_PER_PAGE}${(pp.photos||[]).length===0?' · Required':''}</small>
+            </div>`:''}
+          <input type="file" id="pagefile-${sec.id}" accept="image/*" multiple style="display:none" onchange="handlePagePhoto(${sec.id},this.files)" />
         </div>
       </div>
     </div>
@@ -1125,7 +1128,7 @@ function renderAuditForm(host){
   refreshNextBtn();
 }
 
-/* Validate: every sub-item answered AND page photo uploaded */
+/* Validate: every sub-item answered AND at least 1 page photo uploaded */
 function pageIsComplete(sec){
   const items = ITEMS.filter(it => it.sec === sec.id);
   const allAnswered = items.every(it => {
@@ -1133,7 +1136,7 @@ function pageIsComplete(sec){
     return r && (r.pass === true || r.pass === false);
   });
   const pp = SESSION.pagePhotos[sec.id];
-  const hasPhoto = !!(pp && pp.url);
+  const hasPhoto = !!(pp && Array.isArray(pp.photos) && pp.photos.length > 0);
   return allAnswered && hasPhoto;
 }
 
@@ -1169,40 +1172,53 @@ function nextPage(){
   }
 }
 
-/* Mandatory page photo upload — one per page */
+/* Mandatory page photos upload — multiple per page, up to MAX_PHOTOS_PER_PAGE */
 async function handlePagePhoto(sectionId, fileList){
   if (!SESSION.storeCode) { toast('Pick a store first'); return; }
-  const original = [...fileList].filter(f => /^image\//.test(f.type))[0];
-  if (!original) { toast('Pick an image'); return; }
-  SESSION.pagePhotos[sectionId] = SESSION.pagePhotos[sectionId] || {url:'',fileId:'',uploading:false};
+  SESSION.pagePhotos[sectionId] = SESSION.pagePhotos[sectionId] || {photos:[], uploading:false};
+  const current = SESSION.pagePhotos[sectionId].photos || [];
+  const free = Math.max(0, MAX_PHOTOS_PER_PAGE - current.length);
+  const files = [...fileList].filter(f => /^image\//.test(f.type)).slice(0, free);
+  if (!files.length) {
+    toast(free === 0 ? `Max ${MAX_PHOTOS_PER_PAGE} photos per page` : 'Pick an image');
+    return;
+  }
+
   SESSION.pagePhotos[sectionId].uploading = true;
   renderAuditForm(document.getElementById('main'));
-  try {
-    const f = await compressImage(original, { maxDim: 1600, quality: 0.85 });
-    const dataUri = await fileToDataURI(f);
-    const r = await api('POST', '/api/upload', {
-      fileData: dataUri,
-      fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_sec${sectionId}_${Date.now()}_${(f.name||'page.jpg').replace(/\s+/g,'_')}`,
-      mimeType: f.type || 'image/jpeg',
-      storeCode: SESSION.storeCode,
-      phase: 'Pre_Audit'
-    });
-    if (r && r.success && r.url) {
-      SESSION.pagePhotos[sectionId] = { url: r.url, fileId: r.fileId, uploading: false };
-      toast('Page photo uploaded ✓');
-    } else {
-      SESSION.pagePhotos[sectionId].uploading = false;
-      toast('Upload failed: ' + ((r && r.error) || 'unknown'));
-    }
-  } catch (e) {
-    SESSION.pagePhotos[sectionId].uploading = false;
-    toast('Upload failed: ' + e.message);
+
+  /* Parallel upload — compress to ~70% then send to Drive */
+  const results = await Promise.all(files.map(async f => {
+    try {
+      const compressed = await compressImage(f, { maxDim: 1600, quality: PHOTO_QUALITY });
+      const dataUri = await fileToDataURI(compressed);
+      const r = await api('POST', '/api/upload', {
+        fileData: dataUri,
+        fileName: `audit_${CURRENT_USER.emp_code}_${SESSION.storeCode}_sec${sectionId}_${Date.now()}_${(compressed.name||'page.jpg').replace(/\s+/g,'_')}`,
+        mimeType: compressed.type || 'image/jpeg',
+        storeCode: SESSION.storeCode,
+        phase: 'Pre_Audit'
+      });
+      return (r && r.success && r.url) ? { ok:true, url:r.url, fileId:r.fileId } : { ok:false, err:(r&&r.error)||'unknown' };
+    } catch (e) { return { ok:false, err:e.message }; }
+  }));
+
+  let added = 0, failed = 0, lastErr = '';
+  for (const r of results) {
+    if (r.ok) { SESSION.pagePhotos[sectionId].photos.push({ url:r.url, fileId:r.fileId }); added++; }
+    else { failed++; lastErr = r.err || lastErr; }
   }
+  SESSION.pagePhotos[sectionId].uploading = false;
   renderAuditForm(document.getElementById('main'));
+
+  if (failed) toast(`${added} added · ${failed} failed${lastErr ? ' — '+lastErr : ''}`);
+  else toast(`${added} photo${added>1?'s':''} uploaded ✓`);
 }
 
-function rmPagePhoto(sectionId){
-  SESSION.pagePhotos[sectionId] = { url:'', fileId:'', uploading:false };
+function rmPagePhoto(sectionId, idx){
+  const pp = SESSION.pagePhotos[sectionId];
+  if (!pp || !Array.isArray(pp.photos)) return;
+  pp.photos.splice(idx, 1);
   renderAuditForm(document.getElementById('main'));
 }
 
@@ -1263,8 +1279,10 @@ async function compressImage(file, opts){
 /* Result */
 function gradeFor(pct){ return pct >= 80 ? 'Gold' : (pct >= 60 ? 'Silver' : 'Red'); }
 function renderAuditResult(host){
+  /* Compliance % uses canonical 25 items (5 sections × 5 sub-questions) */
   let pass = 0; ITEMS.forEach(it => { if(SESSION.responses[it.id]?.pass === true) pass++; });
-  const pct = Math.round(pass*100/ITEMS.length);
+  const TOTAL = 25;
+  const pct = Math.round(pass*100/TOTAL);
   const grade = gradeFor(pct);
   const gradeColor = {Gold:'#D4A64A',Silver:'#9CAEC2',Red:'#D23B3B'}[grade];
   const bySec = SECTIONS.map(sec=>{
@@ -1277,7 +1295,7 @@ function renderAuditResult(host){
 
   host.innerHTML = `
     <div class="result-hero">
-      <div class="ring" style="--p:${pct};--c:${gradeColor}"><div class="pct">${pct}%<small>${pass} / ${ITEMS.length}</small></div></div>
+      <div class="ring" style="--p:${pct};--c:${gradeColor}"><div class="pct">${pct}%<small>${pass} / ${TOTAL}</small></div></div>
       <div style="margin:10px 0 4px"><span class="gradechip ${grade}">Grade ${grade}</span></div>
       <div class="hindi">${grade==='Gold'?'उत्कृष्ट · Best Store eligible':grade==='Silver'?'अनुपालन · Corrections within 24h':'गंभीर · Immediate intervention'}</div>
     </div>
@@ -1324,18 +1342,21 @@ async function finishAudit(pct, grade, pass){
   SESSION.sessionId = sessionId;
 
   /* 2) Batch all 25 answers into a single round trip.
-        Photos now live at the PAGE/SECTION level — copy each page photo into
-        every sub-item belonging to that section so the Sheet records the
-        photo URL on every row. */
+        Photos now live at the PAGE/SECTION level — every sub-item in a
+        section gets ALL of that page's photo URLs (multiple supported). */
   const thumbs = [];
   for (const s of SECTIONS) {
     const pp = SESSION.pagePhotos[s.id];
-    if (pp && pp.url && thumbs.length < 8) thumbs.push(pp.url);
+    if (pp && Array.isArray(pp.photos)) {
+      for (const ph of pp.photos) {
+        if (ph.url && thumbs.length < 8) thumbs.push(ph.url);
+      }
+    }
   }
   const answers = ITEMS.map(it => {
     const r = SESSION.responses[it.id] || {};
-    const pp = SESSION.pagePhotos[it.sec] || {};
-    const photoUrls = pp.url ? [pp.url] : [];
+    const pp = SESSION.pagePhotos[it.sec] || {photos:[]};
+    const photoUrls = (pp.photos||[]).map(p => p.url).filter(Boolean);
     return {
       itemId: it.id,
       status: r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending'),
@@ -1354,18 +1375,19 @@ async function finishAudit(pct, grade, pass){
 
   /* 3) Build per-item answer details for the single "Audits" sheet
      (one row per Yes/No item; backend filters Pending out).
-     Photo URL is the page-level photo for that item's section. */
+     Photo URLs are all page-level photos for that item's section,
+     joined with ' | ' on the sheet. */
   const answerDetails = ITEMS.map(it => {
     const r = SESSION.responses[it.id] || {};
     const sec = SECTIONS.find(s => s.id === it.sec);
-    const pp = SESSION.pagePhotos[it.sec] || {};
+    const pp = SESSION.pagePhotos[it.sec] || {photos:[]};
     return {
       itemId: it.id,
       title: it.title,
       section: sec ? sec.name : '',
       status: r.pass === true ? 'Yes' : (r.pass === false ? 'No' : 'Pending'),
       remarks: r.remarks || '',
-      photoUrls: pp.url ? [pp.url] : []
+      photoUrls: (pp.photos||[]).map(p => p.url).filter(Boolean)
     };
   });
 

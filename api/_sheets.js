@@ -60,6 +60,30 @@ function envOk() {
 
 function gradeFor(pct) { return pct >= 80 ? 'Gold' : (pct >= 60 ? 'Silver' : 'Red'); }
 
+/* Format any ISO/Date value as IST DD-MM-YYYY HH:MM:SS.
+   Accepts ISO strings, Date objects, or already-formatted strings (which
+   are returned untouched). */
+function formatIST(value) {
+  if (!value) return '';
+  /* Already in DD-MM-YYYY HH:MM:SS — leave alone */
+  if (/^\d{2}-\d{2}-\d{4}\s\d{2}:\d{2}:\d{2}$/.test(String(value))) return String(value);
+  let d;
+  try {
+    d = (value instanceof Date) ? value : new Date(String(value));
+    if (isNaN(d.getTime())) return String(value);
+  } catch (_) { return String(value); }
+  /* Convert UTC to IST (UTC+5:30) */
+  const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+  const pad = n => String(n).padStart(2, '0');
+  const dd = pad(ist.getUTCDate());
+  const mm = pad(ist.getUTCMonth() + 1);
+  const yyyy = ist.getUTCFullYear();
+  const HH = pad(ist.getUTCHours());
+  const MM = pad(ist.getUTCMinutes());
+  const SS = pad(ist.getUTCSeconds());
+  return `${dd}-${mm}-${yyyy} ${HH}:${MM}:${SS}`;
+}
+
 /* ── Tab creation (idempotent) ───────────────────────────── */
 async function ensureTabExists(tabName) {
   const sheetId = process.env.GOOGLE_SHEET_ID;
@@ -141,7 +165,7 @@ async function appendAuditData(session, answers, extras) {
   const pct = Number(session.compliance_pct || 0);
   const sessionCols = [
     session.id || '',
-    session.submitted_at || session.created_at || '',
+    formatIST(session.submitted_at || session.created_at || ''),
     session.audit_date || '',
     session.store_code || '',
     session.store_name || '',
@@ -172,7 +196,7 @@ async function appendAuditData(session, answers, extras) {
         a.status || '',
         a.remarks || '',
         (photoUrls || []).join(' | '),
-        /* Fixed / post-audit fields start empty */
+        /* Fixed / post-audit fields start empty (filled later by markAnswerFixed) */
         '', '', '', '', ''
       ]);
     });
@@ -223,7 +247,7 @@ async function markAnswerFixed({ sessionId, itemId, postPhotoUrl, fixedByCode, f
       values: [[
         1,
         postPhotoUrl || '',
-        fixedAt || new Date().toISOString(),
+        formatIST(fixedAt || new Date()),
         String(fixedByCode || ''),
         fixedByName || ''
       ]]
