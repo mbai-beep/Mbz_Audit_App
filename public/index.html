@@ -450,11 +450,11 @@
   </div>
 </div>
 
-<!-- Password Expiry Modal -->
+<!-- Password Change Modal (first-login + 60-day expiry) -->
 <div class="modal" id="pwExpiryModal">
   <div class="sheet">
-    <h2>🔑 Password Expired</h2>
-    <div class="lead">Your password is older than 60 days. Please set a new password to continue.</div>
+    <h2 id="pwExpiryTitle">🔑 Change Password</h2>
+    <div class="lead" id="pwExpiryLead">Please set a new password to continue.</div>
     <div class="field"><label>Current Password</label><input type="password" id="pwOld" /></div>
     <div class="field"><label>New Password</label><input type="password" id="pwNew1" placeholder="At least 6 characters" /></div>
     <div class="field"><label>Confirm New Password</label><input type="password" id="pwNew2" />
@@ -539,14 +539,14 @@ const ITEMS = [
   {id:4,  sec:1, title:'Security Protocol',      hindi:'चाबी सुरक्षा',      evidence:'Key Handover Register',               photoNeeded:true,  what:'Key handover documented and signed both shifts?'},
   {id:5,  sec:1, title:'Equipment',              hindi:'उपकरण',            evidence:'Maintenance Log',                     photoNeeded:false, what:'All fixtures, lights, AC working properly?'},
   {id:6,  sec:2, title:'Uniform Compliance',     hindi:'वर्दी',             evidence:'Group photograph at 10:30 AM',        photoNeeded:true,  what:'100% adherence to company uniform standards?'},
-  {id:7,  sec:2, title:'Saree / Appearance',     hindi:'साड़ी / दिखावट',    evidence:'Visual inspection',                   photoNeeded:false, what:'Professional saree drape and appearance (female staff)?'},
+  {id:7,  sec:2, title:'Appearance',             hindi:'दिखावट',            evidence:'Visual inspection',                   photoNeeded:false, what:'Professional appearance and presentation?'},
   {id:8,  sec:2, title:'Grooming Standards',     hindi:'सजावट',            evidence:'Visual inspection',                   photoNeeded:false, what:'Hair neat, nails clean, minimal jewelry?'},
   {id:9,  sec:2, title:'Line-up Inspection',     hindi:'लाइन-अप',          evidence:'Manager confirmation',                photoNeeded:false, what:'Morning inspection completed before floor opens?'},
   {id:10, sec:2, title:'ID Cards Visible',       hindi:'पहचान पत्र',        evidence:'Visual / Photo',                      photoNeeded:true,  what:'All staff have valid, visible ID cards?'},
   {id:11, sec:3, title:'Inward / Outward',       hindi:'इन-आउट',           evidence:'Challan vs Register',                 photoNeeded:false, what:'All stock movements recorded immediately?'},
   {id:12, sec:3, title:'Daily Count',            hindi:'दैनिक गिनती',       evidence:'Signed Daily Stock Sheet',            photoNeeded:true,  what:'High-value / random category stock counted?'},
-  {id:13, sec:3, title:'Backroom Organization',  hindi:'गोदाम',            evidence:'Visual Spot Check',                   photoNeeded:true,  what:'No cartons on floor; items racked by SKU?'},
-  {id:14, sec:3, title:'GRN Compliance',         hindi:'GRN',              evidence:'System vs Physical match',            photoNeeded:false, what:'GRN generated before stock hits floor?'},
+  {id:13, sec:3, title:'Organized Backroom',     hindi:'गोदाम',            evidence:'Visual Spot Check',                   photoNeeded:true,  what:'No cartons on floor; items racked by SKU?'},
+  {id:14, sec:3, title:'GIT Compliance',         hindi:'GIT',              evidence:'System vs Physical match',            photoNeeded:false, what:'Goods-in-Transit reconciled before stock hits floor?'},
   {id:15, sec:3, title:'Stock Accuracy',         hindi:'स्टॉक सटीकता',      evidence:'Quarterly physical count report',     photoNeeded:false, what:'System records match physical inventory?'},
   {id:16, sec:4, title:'Greeting',               hindi:'अभिवादन',          evidence:'CCTV review / Mystery Shopper',       photoNeeded:false, what:'Customer greeted with Namaste within 10 seconds?'},
   {id:17, sec:4, title:'Hospitality',            hindi:'आदर-सत्कार',        evidence:'Observe / Mystery feedback',          photoNeeded:false, what:'Water / seating offered immediately?'},
@@ -560,8 +560,12 @@ const ITEMS = [
   {id:25, sec:5, title:'Staff Punctuality',      hindi:'समय पाबंदी',        evidence:'Bio-metric Attendance Report',        photoNeeded:false, what:'100% staff on-time attendance?'}
 ];
 
-/* Privileged roles (Admin Panel visibility + "All Submissions" label) */
-const PRIVILEGED_ROLES = ['admin', 'owner', 'manager'];
+/* Roles that can view ALL submissions (any store) — added buyer + merchandiser per spec */
+const VIEW_ALL_ROLES = ['admin', 'owner', 'manager', 'buyer', 'merchandiser'];
+/* Roles that get the Admin Panel + "All Submissions" label */
+const PRIVILEGED_ROLES = ['admin', 'owner', 'manager', 'buyer', 'merchandiser'];
+/* Roles allowed to mark fixed / write back to Sheet (kept tighter) */
+const FIX_ROLES = ['admin', 'owner', 'manager'];
 
 /* ╔══════════════════════════════════════════════════════════╗
    ║  API HELPER + AUTH TOKEN                                 ║
@@ -721,15 +725,44 @@ async function doLogin(){
   }
 }
 
-function postLogin(){
-  if (!CURRENT_USER._tcAccepted) {
-    showModal('tcModal');
-    return;
+/* Adjust the password modal copy depending on why it's appearing.
+   First login → "Set Your Password" / "Welcome — please set a personal password."
+   60-day expiry → "Password Expired" / "Your password is older than 60 days…" */
+function setPwModalContext(reason){
+  const titleEl = document.getElementById('pwExpiryTitle');
+  const leadEl  = document.getElementById('pwExpiryLead');
+  if (!titleEl || !leadEl) return;
+  if (reason === 'first-login') {
+    titleEl.textContent = '🔑 Set Your Password';
+    leadEl.textContent  = 'Welcome! Your account uses a default first-time password. Please choose a personal one to continue.';
+  } else {
+    titleEl.textContent = '🔑 Password Expired';
+    leadEl.textContent  = 'Your password is older than 60 days. Please set a new password to continue.';
   }
-  enterApp();
-  if (CURRENT_USER._passwordExpired || CURRENT_USER._isFirstLogin) {
+}
+
+/* T&C MUST appear before password change on first login. Sequence is strictly:
+     1) T&C (if not accepted)  →  user accepts  →  call acceptTC
+     2) Password change (if first login OR expired)
+*/
+function maybeShowPwModal(){
+  if (CURRENT_USER._isFirstLogin) {
+    setPwModalContext('first-login');
+    showModal('pwExpiryModal');
+  } else if (CURRENT_USER._passwordExpired) {
+    setPwModalContext('expired');
     showModal('pwExpiryModal');
   }
+}
+
+function postLogin(){
+  /* Order is deliberate: T&C MUST be the first thing a fresh user sees. */
+  if (!CURRENT_USER._tcAccepted) {
+    showModal('tcModal');
+    return;  // wait for acceptTC() to drive the next step
+  }
+  enterApp();
+  maybeShowPwModal();
 }
 
 async function acceptTC(){
@@ -739,9 +772,9 @@ async function acceptTC(){
   CURRENT_USER._tcAccepted = true;
   hideModal('tcModal');
   enterApp();
-  if (CURRENT_USER._passwordExpired || CURRENT_USER._isFirstLogin) {
-    showModal('pwExpiryModal');
-  }
+  /* Brief delay so the T&C modal hide animation finishes before
+     the password modal opens — cleaner UX. */
+  setTimeout(maybeShowPwModal, 250);
 }
 
 function enterApp(){
@@ -1445,8 +1478,20 @@ async function finishAudit(pct, grade, pass){
    ║  SUBMISSIONS LIST & DETAIL                               ║
    ╚══════════════════════════════════════════════════════════╝ */
 let DETAIL_ID = null;
+/* Submissions list filters — sticky across re-renders */
+let SUBMISSIONS_STORE_FILTER = '';   // '' = all stores (privileged roles only)
+let SUBMISSIONS_LIMIT = 10;          // default: last 10 audits
+
 async function loadSubmissions(){
-  const r = await api('GET', '/api/audits?action=list&limit=200');
+  const u = CURRENT_USER || {};
+  const qs = new URLSearchParams();
+  qs.set('action', 'list');
+  qs.set('limit', String(SUBMISSIONS_LIMIT));
+  /* Apply store filter ONLY for privileged roles (server scopes employees anyway) */
+  if (VIEW_ALL_ROLES.includes(u.role) && SUBMISSIONS_STORE_FILTER) {
+    qs.set('storeCode', SUBMISSIONS_STORE_FILTER);
+  }
+  const r = await api('GET', '/api/audits?' + qs.toString());
   if (r && r.success && Array.isArray(r.sessions)) {
     SUBMISSIONS_CACHE = r.sessions.map(s => ({
       id: s.id,
@@ -1487,9 +1532,24 @@ async function renderSubmissions(host){
   const allOnPage = visible.map(s => s.id);
   const allSelected = selectMode && allOnPage.length && allOnPage.every(id => SELECTED_SUBMISSIONS.has(id));
 
+  const canViewAll = VIEW_ALL_ROLES.includes(u.role);
+  /* Build the store dropdown options sorted by code */
+  const sortedStores = STORES.slice().sort((a,b) =>
+    String(a.code||'').localeCompare(String(b.code||''), undefined, {numeric:true}));
   host.innerHTML = `
     <h1>${isAdminish(u)?'All Submissions':'My Submissions'}</h1>
-    <div class="hindi" style="margin-bottom:14px">${isAdminish(u)?'सभी सबमिशन':'मेरी सबमिशन'} · ${visible.length} total</div>
+    <div class="hindi" style="margin-bottom:14px">${isAdminish(u)?'सभी सबमिशन':'मेरी सबमिशन'} · showing last ${SUBMISSIONS_LIMIT} · ${visible.length} loaded</div>
+
+    ${canViewAll ? `
+      <!-- Store filter dropdown — only for admin / owner / manager / buyer / merchandiser -->
+      <div class="card" style="padding:12px;margin-bottom:10px">
+        <label style="display:block;font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px">Filter by Store</label>
+        <select id="subStoreFilter" onchange="onSubmissionsStoreChange(this.value)" style="width:100%">
+          <option value="">All stores (${sortedStores.length})</option>
+          ${sortedStores.map(s => `<option value="${s.code}" ${s.code===SUBMISSIONS_STORE_FILTER?'selected':''}>${s.code} — ${(s.name||'').replace(/</g,'&lt;')}${s.city?' · '+s.city:''}</option>`).join('')}
+        </select>
+      </div>` : `
+      <div class="hint" style="font-size:12px;color:var(--mute);margin-bottom:10px">Showing audits for your store only (${u.store_code || '—'}).</div>`}
 
     ${canBulk ? `
       <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -1505,7 +1565,7 @@ async function renderSubmissions(host){
         <button class="danger" onclick="deleteSelectedSubmissions()" ${SELECTED_SUBMISSIONS.size===0?'disabled':''}>🗑 Delete ${SELECTED_SUBMISSIONS.size||''}</button>
       </div>` : ''}
 
-    ${visible.length===0 ? '<div class="empty"><div class="ic">📭</div><b>No submissions yet</b><p>Tap "Start New Audit" on Home.</p></div>' :
+    ${visible.length===0 ? '<div class="empty"><div class="ic">📭</div><b>No submissions found</b><p>Try a different store filter or start a new audit on Home.</p></div>' :
       visible.map(s => {
         const checked = SELECTED_SUBMISSIONS.has(s.id);
         return `
@@ -1520,7 +1580,29 @@ async function renderSubmissions(host){
             ${s.thumbs.map(t => `<div class="th" onclick="event.stopPropagation();openLightbox('${t}')"><img src="${t}" alt="" /></div>`).join('')}
           </div>`:''}
         </div>`;}).join('')}
+
+    ${visible.length >= SUBMISSIONS_LIMIT ? `
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn ghost" onclick="loadMoreSubmissions()">Load more (next 10)</button>
+        <button class="btn ghost" onclick="resetSubmissionsView()">Reset to last 10</button>
+      </div>` : ''}
   `;
+}
+
+/* Store filter change handler — re-fetches with the new filter */
+async function onSubmissionsStoreChange(code){
+  SUBMISSIONS_STORE_FILTER = code || '';
+  SUBMISSIONS_LIMIT = 10; // reset to default 10 when changing store
+  renderSubmissions(document.getElementById('main'));
+}
+async function loadMoreSubmissions(){
+  SUBMISSIONS_LIMIT += 10;
+  renderSubmissions(document.getElementById('main'));
+}
+async function resetSubmissionsView(){
+  SUBMISSIONS_LIMIT = 10;
+  SUBMISSIONS_STORE_FILTER = '';
+  renderSubmissions(document.getElementById('main'));
 }
 
 function toggleSelectMode(){

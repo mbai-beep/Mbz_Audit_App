@@ -7,8 +7,10 @@ const {
   deleteSessionRows
 } = require('./_sheets');
 
-/* Privileged roles allowed to mark No items as fixed in follow-up */
+/* Roles allowed to mark No items as fixed in follow-up (kept tight) */
 const PRIV_ROLES = ['admin', 'manager', 'owner'];
+/* Roles allowed to view ALL submissions across stores */
+const VIEW_ALL_ROLES = ['admin', 'manager', 'owner', 'buyer', 'merchandiser'];
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mb-customer-req-2024-secret';
 const CORS = {
@@ -594,25 +596,36 @@ async function handle(req, res) {
     return res.json({ success: true, deleted, sheetRowsDeleted, errors });
   }
 
-  /* ── GET ?action=list — recent sessions, scoped by role ─ */
+  /* ── GET ?action=list — recent sessions, scoped by role ─
+     Role rules:
+       - admin / owner / manager / buyer / merchandiser  → all stores
+       - employee                                        → only their own store_code
+     Optional `?storeCode=` filter for VIEW_ALL_ROLES (dropdown in the UI).
+     Default `limit` is 10 (last 10 audits); cap is 500. */
   if (action === 'list' && req.method === 'GET') {
     const { storeCode, from, to, limit } = req.query;
     let where = [];
     let args = [];
-    if (storeCode) { where.push('store_code = ?'); args.push(storeCode); }
-    if (from)      { where.push('audit_date >= ?'); args.push(from); }
-    if (to)        { where.push('audit_date <= ?'); args.push(to); }
-    if (user.role === 'employee') {
-      where.push('conducted_by_code = ?'); args.push(user.empCode);
-    } else if (user.role === 'manager' && user.storeCode) {
-      // Manager sees only their showroom by default
-      if (!storeCode) { where.push('store_code = ?'); args.push(user.storeCode); }
+
+    if (VIEW_ALL_ROLES.includes(user.role)) {
+      /* Cross-store view; honour optional store filter */
+      if (storeCode) { where.push('store_code = ?'); args.push(String(storeCode)); }
+    } else {
+      /* Employee: locked to their own store_code */
+      const sc = user.storeCode || '';
+      if (sc) { where.push('store_code = ?'); args.push(String(sc)); }
+      else    { where.push('1 = 0'); }  // no store → see nothing
     }
+
+    if (from) { where.push('audit_date >= ?'); args.push(from); }
+    if (to)   { where.push('audit_date <= ?'); args.push(to); }
+
+    const lim = Math.min(Math.max(Number(limit) || 10, 1), 500);
     const sql = `SELECT * FROM audit_sessions ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
                  ORDER BY audit_date DESC, created_at DESC
-                 LIMIT ${Math.min(Number(limit) || 200, 500)}`;
+                 LIMIT ${lim}`;
     const r = await db.execute({ sql, args });
-    return res.json({ success: true, sessions: r.rows.map(mapSession) });
+    return res.json({ success: true, sessions: r.rows.map(mapSession), limit: lim });
   }
 
   return res.status(400).json({ success: false, error: 'Invalid action: ' + action });
