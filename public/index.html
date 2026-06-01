@@ -1651,11 +1651,29 @@ async function loadMoreSubmissions(){
   renderSubmissions(document.getElementById('main'));
 }
 async function resetSubmissionsView(){
+  /* 1) Reset the in-memory filter state */
   SUBMISSIONS_LIMIT = 10;
   SUBMISSIONS_STORE_FILTER = '';
   SUBMISSIONS_FROM_DATE = '';
   SUBMISSIONS_TO_DATE = '';
-  renderSubmissions(document.getElementById('main'));
+
+  /* 2) Belt-and-suspenders: explicitly null out the existing inputs in
+     the DOM BEFORE re-render. Some browsers retain a date input's
+     user-entered value when only the innerHTML container is replaced
+     and the input element happens to recycle. This guarantees a
+     clean visible state. */
+  const fromEl = document.getElementById('subFromDate');
+  const toEl   = document.getElementById('subToDate');
+  const stoEl  = document.getElementById('subStoreFilter');
+  if (fromEl) fromEl.value = '';
+  if (toEl)   toEl.value = '';
+  if (stoEl)  stoEl.value = '';
+
+  /* 3) Visible confirmation that the click handler fired */
+  toast('Filters cleared — showing last 10');
+
+  /* 4) Re-render (awaited so the spinner / progress bar behaves) */
+  await renderSubmissions(document.getElementById('main'));
 }
 
 function toggleSelectMode(){
