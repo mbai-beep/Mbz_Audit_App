@@ -1561,12 +1561,7 @@ async function renderSubmissions(host){
           <input type="date" id="subToDate" value="${SUBMISSIONS_TO_DATE}" onchange="onSubmissionsDateChange('to', this.value)" />
         </div>
       </div>
-      ${(SUBMISSIONS_FROM_DATE || SUBMISSIONS_TO_DATE) ? `
-        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
-          <span class="hint" style="font-size:12px;color:var(--brand)">${SUBMISSIONS_FROM_DATE ? 'From ' + SUBMISSIONS_FROM_DATE : ''} ${SUBMISSIONS_TO_DATE ? '· To ' + SUBMISSIONS_TO_DATE : ''}</span>
-          <button class="btn sm ghost" onclick="clearSubmissionsDateFilter()" style="margin-left:auto">Clear dates</button>
-        </div>` : `
-        <div class="hint" style="font-size:11px;color:var(--mute);margin-top:6px">Leave blank to show the most recent audits.</div>`}
+      <div class="hint" style="font-size:11px;color:var(--mute);margin-top:6px">Leave blank to show the most recent audits.</div>
     </div>
 
     ${canViewAll ? `
@@ -1577,6 +1572,13 @@ async function renderSubmissions(host){
           <option value="">All stores (${sortedStores.length})</option>
           ${sortedStores.map(s => `<option value="${s.code}" ${s.code===SUBMISSIONS_STORE_FILTER?'selected':''}>${s.code} — ${(s.name||'').replace(/</g,'&lt;')}${s.city?' · '+s.city:''}</option>`).join('')}
         </select>
+      </div>
+
+      <!-- Unified Clear Filter — visible only to admin/owner/manager/buyer/merchandiser -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn sm ghost" onclick="resetSubmissionsView()" ${(!SUBMISSIONS_STORE_FILTER && !SUBMISSIONS_FROM_DATE && !SUBMISSIONS_TO_DATE && SUBMISSIONS_LIMIT===10) ? 'disabled' : ''}>
+          ✖ Clear Filter
+        </button>
       </div>` : `
       <div class="hint" style="font-size:12px;color:var(--mute);margin-bottom:10px">Showing audits for your store only (${u.store_code || '—'}).</div>`}
 
@@ -1613,7 +1615,6 @@ async function renderSubmissions(host){
     ${visible.length >= SUBMISSIONS_LIMIT ? `
       <div style="display:flex;gap:8px;margin-top:10px">
         <button class="btn ghost" onclick="loadMoreSubmissions()">Load more (next 10)</button>
-        <button class="btn ghost" onclick="resetSubmissionsView()">Reset to last 10</button>
       </div>` : ''}
   `;
 }
