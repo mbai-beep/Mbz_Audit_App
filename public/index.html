@@ -1480,6 +1480,8 @@ async function finishAudit(pct, grade, pass){
 let DETAIL_ID = null;
 /* Submissions list filters — sticky across re-renders */
 let SUBMISSIONS_STORE_FILTER = '';   // '' = all stores (privileged roles only)
+let SUBMISSIONS_FROM_DATE = '';      // YYYY-MM-DD inclusive
+let SUBMISSIONS_TO_DATE = '';        // YYYY-MM-DD inclusive
 let SUBMISSIONS_LIMIT = 10;          // default: last 10 audits
 
 async function loadSubmissions(){
@@ -1491,6 +1493,9 @@ async function loadSubmissions(){
   if (VIEW_ALL_ROLES.includes(u.role) && SUBMISSIONS_STORE_FILTER) {
     qs.set('storeCode', SUBMISSIONS_STORE_FILTER);
   }
+  /* Date range filters apply to ALL roles */
+  if (SUBMISSIONS_FROM_DATE) qs.set('from', SUBMISSIONS_FROM_DATE);
+  if (SUBMISSIONS_TO_DATE)   qs.set('to',   SUBMISSIONS_TO_DATE);
   const r = await api('GET', '/api/audits?' + qs.toString());
   if (r && r.success && Array.isArray(r.sessions)) {
     SUBMISSIONS_CACHE = r.sessions.map(s => ({
@@ -1538,7 +1543,31 @@ async function renderSubmissions(host){
     String(a.code||'').localeCompare(String(b.code||''), undefined, {numeric:true}));
   host.innerHTML = `
     <h1>${isAdminish(u)?'All Submissions':'My Submissions'}</h1>
-    <div class="hindi" style="margin-bottom:14px">${isAdminish(u)?'सभी सबमिशन':'मेरी सबमिशन'} · showing last ${SUBMISSIONS_LIMIT} · ${visible.length} loaded</div>
+    <div class="hindi" style="margin-bottom:14px">
+      ${isAdminish(u)?'सभी सबमिशन':'मेरी सबमिशन'} · ${visible.length} of last ${SUBMISSIONS_LIMIT} loaded
+      ${(SUBMISSIONS_FROM_DATE || SUBMISSIONS_TO_DATE) ? ` · 📅 ${SUBMISSIONS_FROM_DATE || '…'} → ${SUBMISSIONS_TO_DATE || '…'}` : ''}
+    </div>
+
+    <!-- Date range filter — visible to ALL roles, placed BEFORE the store dropdown -->
+    <div class="card" style="padding:12px;margin-bottom:10px">
+      <label style="display:block;font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px">Filter by Date</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="display:block;font-size:11px;color:var(--mute);margin-bottom:4px">From</label>
+          <input type="date" id="subFromDate" value="${SUBMISSIONS_FROM_DATE}" onchange="onSubmissionsDateChange('from', this.value)" />
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;color:var(--mute);margin-bottom:4px">To</label>
+          <input type="date" id="subToDate" value="${SUBMISSIONS_TO_DATE}" onchange="onSubmissionsDateChange('to', this.value)" />
+        </div>
+      </div>
+      ${(SUBMISSIONS_FROM_DATE || SUBMISSIONS_TO_DATE) ? `
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <span class="hint" style="font-size:12px;color:var(--brand)">${SUBMISSIONS_FROM_DATE ? 'From ' + SUBMISSIONS_FROM_DATE : ''} ${SUBMISSIONS_TO_DATE ? '· To ' + SUBMISSIONS_TO_DATE : ''}</span>
+          <button class="btn sm ghost" onclick="clearSubmissionsDateFilter()" style="margin-left:auto">Clear dates</button>
+        </div>` : `
+        <div class="hint" style="font-size:11px;color:var(--mute);margin-top:6px">Leave blank to show the most recent audits.</div>`}
+    </div>
 
     ${canViewAll ? `
       <!-- Store filter dropdown — only for admin / owner / manager / buyer / merchandiser -->
@@ -1595,6 +1624,27 @@ async function onSubmissionsStoreChange(code){
   SUBMISSIONS_LIMIT = 10; // reset to default 10 when changing store
   renderSubmissions(document.getElementById('main'));
 }
+/* Date range change handlers — re-fetch with the new filter.
+   Validates that From <= To; if not, toasts and reverts. */
+async function onSubmissionsDateChange(which, value){
+  const v = (value || '').trim();
+  if (which === 'from') SUBMISSIONS_FROM_DATE = v;
+  else if (which === 'to') SUBMISSIONS_TO_DATE = v;
+  /* Validation: from must not be after to */
+  if (SUBMISSIONS_FROM_DATE && SUBMISSIONS_TO_DATE && SUBMISSIONS_FROM_DATE > SUBMISSIONS_TO_DATE) {
+    toast('"From" date must be on or before "To" date');
+    if (which === 'from') SUBMISSIONS_FROM_DATE = '';
+    else SUBMISSIONS_TO_DATE = '';
+  }
+  SUBMISSIONS_LIMIT = 10; // reset to default 10 when changing date range
+  renderSubmissions(document.getElementById('main'));
+}
+function clearSubmissionsDateFilter(){
+  SUBMISSIONS_FROM_DATE = '';
+  SUBMISSIONS_TO_DATE = '';
+  SUBMISSIONS_LIMIT = 10;
+  renderSubmissions(document.getElementById('main'));
+}
 async function loadMoreSubmissions(){
   SUBMISSIONS_LIMIT += 10;
   renderSubmissions(document.getElementById('main'));
@@ -1602,6 +1652,8 @@ async function loadMoreSubmissions(){
 async function resetSubmissionsView(){
   SUBMISSIONS_LIMIT = 10;
   SUBMISSIONS_STORE_FILTER = '';
+  SUBMISSIONS_FROM_DATE = '';
+  SUBMISSIONS_TO_DATE = '';
   renderSubmissions(document.getElementById('main'));
 }
 
