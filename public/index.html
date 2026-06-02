@@ -325,15 +325,15 @@
 
       <div class="field">
         <label>Employee ID</label>
-        <input id="loginCode" value="2266" placeholder="e.g. 2266" inputmode="numeric" />
+        <input id="loginCode" placeholder="e.g. 2266" inputmode="numeric" autocomplete="off" />
       </div>
       <div class="field">
         <label>Password</label>
         <div class="pw-row">
-          <input id="loginPass" type="password" placeholder="••••••••" />
+          <input id="loginPass" type="password" placeholder="••••••••" autocomplete="new-password" />
           <button class="eye" onclick="togglePw('loginPass',this)" title="Show/hide">👁️</button>
         </div>
-        <div class="hint">First time? Use <b>MB@&lt;YourEmployeeCode&gt;</b> (e.g. MB@2266)</div>
+        <div class="hint">First time? Use <b>MB@&lt;YourEmployeeCode&gt;</b> (e.g. MB@3001)</div>
       </div>
 
       <div class="row">
@@ -741,28 +741,40 @@ function setPwModalContext(reason){
   }
 }
 
-/* T&C MUST appear before password change on first login. Sequence is strictly:
-     1) T&C (if not accepted)  →  user accepts  →  call acceptTC
-     2) Password change (if first login OR expired)
-*/
+/* First-login sequence — STRICT order:
+     1) Password change   (if first login OR 60-day expired)
+     2) Terms & Conditions (if not yet accepted)
+   The reverse order looks confusing because users see legal text before
+   they've finished securing their account. This order is also closer
+   to how Store Maintenance App handles onboarding. */
 function maybeShowPwModal(){
   if (CURRENT_USER._isFirstLogin) {
     setPwModalContext('first-login');
     showModal('pwExpiryModal');
+    return true;
   } else if (CURRENT_USER._passwordExpired) {
     setPwModalContext('expired');
     showModal('pwExpiryModal');
+    return true;
   }
+  return false;
+}
+function maybeShowTCModal(){
+  if (!CURRENT_USER._tcAccepted) {
+    showModal('tcModal');
+    return true;
+  }
+  return false;
 }
 
 function postLogin(){
-  /* Order is deliberate: T&C MUST be the first thing a fresh user sees. */
-  if (!CURRENT_USER._tcAccepted) {
-    showModal('tcModal');
-    return;  // wait for acceptTC() to drive the next step
-  }
+  /* Always enter the app shell first so the modals overlay it cleanly */
   enterApp();
-  maybeShowPwModal();
+  /* Password change is the first thing a fresh user sees. After they
+     submit a new password, renewPassword() will trigger the T&C step. */
+  if (maybeShowPwModal()) return;
+  /* No password change needed — go straight to T&C if not yet accepted */
+  maybeShowTCModal();
 }
 
 async function acceptTC(){
@@ -771,10 +783,7 @@ async function acceptTC(){
   if(!r.success){ toast(r.error || 'Failed to record T&C'); return; }
   CURRENT_USER._tcAccepted = true;
   hideModal('tcModal');
-  enterApp();
-  /* Brief delay so the T&C modal hide animation finishes before
-     the password modal opens — cleaner UX. */
-  setTimeout(maybeShowPwModal, 250);
+  /* User is already in the app shell; nothing else to do here. */
 }
 
 function enterApp(){
@@ -889,7 +898,10 @@ async function renewPassword(){
   document.getElementById('pwOld').value = '';
   document.getElementById('pwNew1').value = '';
   document.getElementById('pwNew2').value = '';
-  toast('Password renewed successfully ✓');
+  toast('Password updated ✓');
+  /* Short delay so the password modal's hide animation finishes
+     before the T&C modal slides in — cleaner UX. */
+  setTimeout(maybeShowTCModal, 250);
 }
 
 /* ╔══════════════════════════════════════════════════════════╗
@@ -987,9 +999,12 @@ function go(view){
   else if(view==='submission-detail') p = renderSubmissionDetail(m);
   else if(view==='more') p = renderMore(m);
   else if(view==='admin') p = renderAdmin(m);
-  window.scrollTo({top:0});
-  /* Hide bar once async render settles (or immediately for sync renders) */
-  Promise.resolve(p).finally(pageBarDone);
+  /* Always start a new view at the top — robust against innerHTML retention */
+  scrollTopHard();
+  /* Hide bar once async render settles (or immediately for sync renders).
+     Scroll-to-top is also re-applied after async renders settle, so pages
+     that finish their layout late still land at the top. */
+  Promise.resolve(p).finally(() => { pageBarDone(); scrollTopHard(); });
 }
 
 /* ╔══════════════════════════════════════════════════════════╗
@@ -1211,9 +1226,23 @@ function setSubPF(id, val, btn){
   refreshNextBtn();
 }
 
+/* ── Scroll-to-top helper — used by every page transition ───
+   Includes a tiny dance to defeat browsers that try to restore
+   scroll position on innerHTML replacement. */
+function scrollTopHard(){
+  /* Try multiple targets — some browsers track body, some html */
+  try { window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); } catch (_) { window.scrollTo(0, 0); }
+  if (document.documentElement) document.documentElement.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
+}
+
 /* Page navigation */
 function prevPage(){
-  if (SESSION.pageIdx > 0) { SESSION.pageIdx--; renderAuditForm(document.getElementById('main')); }
+  if (SESSION.pageIdx > 0) {
+    SESSION.pageIdx--;
+    renderAuditForm(document.getElementById('main'));
+    scrollTopHard();
+  }
 }
 function nextPage(){
   const sec = SECTIONS[SESSION.pageIdx];
@@ -1221,6 +1250,7 @@ function nextPage(){
   if (SESSION.pageIdx < SECTIONS.length - 1) {
     SESSION.pageIdx++;
     renderAuditForm(document.getElementById('main'));
+    scrollTopHard();
   } else {
     go('audit-result');
   }
