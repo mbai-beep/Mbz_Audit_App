@@ -308,7 +308,10 @@
 <body>
 
 <!-- ═══════════════════ LOGIN VIEW ═══════════════════ -->
-<section id="loginView" class="login">
+<!-- Hidden by default; revealed by init() AFTER the Remember-me check
+     completes so we don't flash an empty form when the user actually
+     has a valid saved session. -->
+<section id="loginView" class="login" style="visibility:hidden">
   <div class="brand-mbz">
     <img class="meena-logo" src="/meena_bazaar_logo.png" alt="Meena Bazaar" />
   </div>
@@ -337,7 +340,7 @@
       </div>
 
       <div class="row">
-        <label><input type="checkbox" id="rememberMe" /> Remember me for 30 days</label>
+        <label><input type="checkbox" id="rememberMe" checked /> Remember me for 30 days</label>
         <a href="#" onclick="showModal('otpModal');showOtpStep(1);return false">Forgot Password?</a>
       </div>
 
@@ -665,10 +668,18 @@ async function checkRememberMe(){
     enterApp();
     return true;
   }
-  // token invalid; wipe
-  localStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(TOKEN_KEY);
-  API_TOKEN = '';
+  /* IMPORTANT: only wipe the stored token when the SERVER explicitly
+     said the token is invalid. A network failure / 5xx / timeout must
+     NOT clear localStorage — otherwise a brief offline moment kicks
+     the user out forever. */
+  const serverSaidInvalid = r && (r.valid === false || r._authError === true);
+  if (serverSaidInvalid) {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    API_TOKEN = '';
+  } else {
+    console.warn('[remember-me] verify did not succeed but token preserved (likely network):', r);
+  }
   return false;
 }
 
@@ -809,9 +820,11 @@ function logout(){
   sessionStorage.removeItem(TOKEN_KEY);
   API_TOKEN = '';
   CURRENT_USER = null;
-  document.getElementById('loginView').style.display='flex';
-  document.getElementById('appShell').style.display='none';
-  document.getElementById('bnav').style.display='none';
+  const lv = document.getElementById('loginView');
+  lv.style.display = 'flex';
+  lv.style.visibility = 'visible';   // ensure it's visible (was hidden during init)
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('bnav').style.display = 'none';
   document.getElementById('loginPass').value = '';
   document.getElementById('bannerHost').innerHTML = '';
 }
@@ -1898,11 +1911,6 @@ function renderMore(host){
       <div class="body"><div>Change Password</div><small>60-day expiry · last 3 passwords blocked</small></div>
       <span class="arrow">›</span>
     </button>
-    <button class="bigbtn" onclick="showTCAgain()">
-      <span class="ic">📋</span>
-      <div class="body"><div>Terms &amp; Conditions</div><small>Accepted on first login</small></div>
-      <span class="arrow">›</span>
-    </button>
     <button class="bigbtn" onclick="logout()">
       <span class="ic" style="background:#FCE8E8;color:var(--bad)">⏻</span>
       <div class="body"><div>Sign Out</div><small>Clear "Remember me"</small></div>
@@ -2154,8 +2162,12 @@ function renderAdminSettings(){
       document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
     }
   });
-  // Auto-login via Remember Me
-  await checkRememberMe();
+  // Auto-login via Remember Me. If it doesn't succeed (or no token at
+  // all), reveal the login form so the user can sign in fresh.
+  const autoLoggedIn = await checkRememberMe();
+  if (!autoLoggedIn) {
+    document.getElementById('loginView').style.visibility = 'visible';
+  }
 })();
 </script>
 </body>
