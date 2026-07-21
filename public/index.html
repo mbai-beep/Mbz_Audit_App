@@ -1826,6 +1826,7 @@ function renderFollowUpPanel(s){
 
 function renderNoItemRow(a, s, idx, priv){
   const photos = Array.isArray(a.photos) ? a.photos : [];
+  const safeRemark = (a.post_audit_remark || '').replace(/</g,'&lt;');
   return `
     <div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:${a.fixed?'#F0F9F4':'#FFF7F7'}">
       <div style="display:flex;align-items:flex-start;gap:10px">
@@ -1842,11 +1843,14 @@ function renderNoItemRow(a, s, idx, priv){
             <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2)">
               <b style="color:#0F7A51">Fixed ✓</b>
               <div class="sub" style="font-size:12px;margin-top:2px">By ${a.fixed_by_name || '—'} · ${a.fixed_at || ''}</div>
+              ${safeRemark ? `<div class="sub" style="font-size:13px;margin-top:6px"><b>Post-Audit Remarks:</b> ${safeRemark}</div>` : ''}
               ${a.post_audit_photo ? `<div class="thumbs" style="margin-top:6px"><div class="th" style="width:84px;height:84px;border-radius:8px;background:#e9eaf0 center/cover no-repeat;border:1px solid var(--line);cursor:pointer;overflow:hidden" onclick="openLightbox('${a.post_audit_photo}')"><img src="${a.post_audit_photo}" style="width:100%;height:100%;object-fit:cover"/></div><div class="sub" style="align-self:center;font-size:11px;color:var(--mute);margin-left:6px">Post-Audit photo</div></div>` : ''}
             </div>` : (priv ? `
-            <div style="margin-top:10px">
+            <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2)">
+              <label style="display:block;font-size:12px;color:var(--ink2);font-weight:600;margin-bottom:4px">Post-Audit Remarks (optional)</label>
+              <textarea id="fix-remark-${a.item_id}" placeholder="What was done to fix this? / क्या ठीक किया गया?" style="min-height:56px;font-size:13px;padding:8px 10px"></textarea>
               <input type="file" id="fix-file-${a.item_id}" accept="image/*" style="display:none" onchange="uploadFixPhoto('${s.id}', ${a.item_id}, '${s.store_code}', this.files)" />
-              <button class="btn sm" id="fix-btn-${a.item_id}" onclick="document.getElementById('fix-file-${a.item_id}').click()">📸 Mark as Fixed (upload Post-Audit photo)</button>
+              <button class="btn sm" id="fix-btn-${a.item_id}" onclick="document.getElementById('fix-file-${a.item_id}').click()" style="margin-top:8px">📸 Mark as Fixed (upload Post-Audit photo)</button>
             </div>` : '')}
         </div>
       </div>
@@ -1856,6 +1860,10 @@ function renderNoItemRow(a, s, idx, priv){
 async function uploadFixPhoto(sessionId, itemId, storeCode, fileList){
   const original = [...fileList].filter(x => /^image\//.test(x.type))[0];
   if (!original) { toast('Pick an image'); return; }
+  /* Capture the Post-Audit remark BEFORE the re-render wipes the textarea */
+  const remarkEl = document.getElementById('fix-remark-' + itemId);
+  const postAuditRemark = remarkEl ? remarkEl.value.trim() : '';
+
   const btn = document.getElementById('fix-btn-' + itemId);
   const restore = btnLoad(btn, 'Uploading…');
   try {
@@ -1871,7 +1879,7 @@ async function uploadFixPhoto(sessionId, itemId, storeCode, fileList){
     });
     if (!up || !up.success || !up.url) { toast('Upload failed: ' + (up && up.error ? up.error : 'unknown')); return; }
     const mk = await api('POST', '/api/audits?action=mark-fixed', {
-      sessionId, itemId, postPhotoUrl: up.url
+      sessionId, itemId, postPhotoUrl: up.url, postAuditRemark
     });
     if (!mk || !mk.success) { toast('Mark-fixed failed: ' + (mk && mk.error ? mk.error : 'unknown')); return; }
     /* Refresh detail */

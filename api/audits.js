@@ -462,6 +462,7 @@ async function handle(req, res) {
         title: meta.action_text || '',
         fixed: !!sheetFix.fixed,
         post_audit_photo: sheetFix.post_audit_photo || '',
+        post_audit_remark: sheetFix.post_audit_remark || '',
         fixed_at: sheetFix.fixed_at || '',
         fixed_by_name: sheetFix.fixed_by_name || ''
       };
@@ -483,7 +484,7 @@ async function handle(req, res) {
     if (!PRIV_ROLES.includes(user.role)) {
       return res.status(403).json({ success: false, error: 'Only admin/manager/owner can mark fixed' });
     }
-    const { sessionId, itemId, postPhotoUrl } = req.body || {};
+    const { sessionId, itemId, postPhotoUrl, postAuditRemark } = req.body || {};
     if (!sessionId || !itemId || !postPhotoUrl) {
       return res.json({ success: false, error: 'sessionId, itemId and postPhotoUrl required' });
     }
@@ -493,6 +494,7 @@ async function handle(req, res) {
       sessionId,
       itemId,
       postPhotoUrl,
+      postAuditRemark: (postAuditRemark || '').toString().trim(),
       fixedByCode: user.empCode,
       fixedByName: user.empName || '',
       fixedAt: nowIST()

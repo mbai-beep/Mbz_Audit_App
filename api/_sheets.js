@@ -39,14 +39,15 @@ const HEADER_ROW = [
   'Section',               // S
   'Item Title',            // T
   'Item Status',           // U  (Yes / No)
-  'Remarks',               // V
+  'Remarks',               // V  (original pre-audit remarks)
   'Pre-Audit Photo URLs',  // W
-  /* Follow-up fix fields — populated by markAnswerFixed (cols X..AB) */
+  /* Follow-up fix fields — populated by markAnswerFixed (cols X..AC) */
   'Fixed',                 // X  (1/0)
   'Post-Audit Photo URL',  // Y
   'Fixed At (IST)',        // Z
   'Fixed By Code',         // AA
-  'Fixed By Name'          // AB
+  'Fixed By Name',         // AB
+  'Post-Audit Remarks'     // AC  (NEW — what the fixer did)
 ];
 
 function apiUrl(sheetId, path, query = {}) {
@@ -141,7 +142,7 @@ async function appendValues(rows) {
   }
   if (!rows || !rows.length) return true;
   try {
-    const url = apiUrl(sheetId, `/values/${encodeURIComponent(TAB + '!A:AB')}:append`, {
+    const url = apiUrl(sheetId, `/values/${encodeURIComponent(TAB + '!A:AC')}:append`, {
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS'
     });
@@ -196,25 +197,26 @@ async function appendAuditData(session, answers, extras) {
         a.status || '',
         a.remarks || '',
         (photoUrls || []).join(' | '),
-        /* Fixed / post-audit fields start empty (filled later by markAnswerFixed) */
-        '', '', '', '', ''
+        /* Fixed / post-audit fields start empty (X..AC = 6 cells) —
+           filled later by markAnswerFixed */
+        '', '', '', '', '', ''
       ]);
     });
 
   if (!itemRows.length) {
     /* Edge case: no Yes/No answers — write a single "summary-only" row so
-       the submission is still visible in the sheet. */
-    const blank = sessionCols.concat(['', '', '', '', '', '', '', '', '', '', '']);
+       the submission is still visible in the sheet. R..AC = 12 empty cells. */
+    const blank = sessionCols.concat(['', '', '', '', '', '', '', '', '', '', '', '']);
     return appendValues([blank]);
   }
 
   return appendValues(itemRows);
 }
 
-/* ── markAnswerFixed: update the row matching sessionId + itemId in place
-   Columns X..AB = Fixed, Post-Audit Photo URL, Fixed At, Fixed By Code, Fixed By Name
-*/
-async function markAnswerFixed({ sessionId, itemId, postPhotoUrl, fixedByCode, fixedByName, fixedAt }) {
+/* ── markAnswerFixed: update the row matching sessionId + itemId in place.
+   Columns X..AC = Fixed, Post-Audit Photo URL, Fixed At, Fixed By Code,
+                   Fixed By Name, Post-Audit Remarks (6 cells). */
+async function markAnswerFixed({ sessionId, itemId, postPhotoUrl, fixedByCode, fixedByName, fixedAt, postAuditRemark }) {
   if (!envOk()) return { success: false, error: 'Sheets not configured' };
   if (!sessionId || !itemId) return { success: false, error: 'sessionId and itemId required' };
   await ensureHeader();
@@ -236,7 +238,7 @@ async function markAnswerFixed({ sessionId, itemId, postPhotoUrl, fixedByCode, f
   if (targetRow === -1) {
     return { success: false, error: 'Answer row not found in sheet — check sessionId/itemId' };
   }
-  const range = `${TAB}!X${targetRow}:AB${targetRow}`;
+  const range = `${TAB}!X${targetRow}:AC${targetRow}`;
   const putUrl = apiUrl(sheetId, `/values/${encodeURIComponent(range)}`, {
     valueInputOption: 'USER_ENTERED'
   });
@@ -249,7 +251,8 @@ async function markAnswerFixed({ sessionId, itemId, postPhotoUrl, fixedByCode, f
         postPhotoUrl || '',
         formatIST(fixedAt || new Date()),
         String(fixedByCode || ''),
-        fixedByName || ''
+        fixedByName || '',
+        postAuditRemark || ''
       ]]
     })
   }, SCOPE);
@@ -261,7 +264,7 @@ async function readAuditAnswersBySession(sessionId) {
   if (!envOk()) return [];
   await ensureHeader();
   const sheetId = process.env.GOOGLE_SHEET_ID;
-  const readUrl = apiUrl(sheetId, `/values/${encodeURIComponent(TAB + '!A2:AB')}`);
+  const readUrl = apiUrl(sheetId, `/values/${encodeURIComponent(TAB + '!A2:AC')}`);
   const r = await googleFetch(readUrl, {}, SCOPE);
   const data = await r.json();
   const rows = data.values || [];
@@ -283,7 +286,8 @@ async function readAuditAnswersBySession(sessionId) {
       post_audit_photo: row[24] || '',
       fixed_at: row[25] || '',
       fixed_by_code: row[26] || '',
-      fixed_by_name: row[27] || ''
+      fixed_by_name: row[27] || '',
+      post_audit_remark: row[28] || ''   // NEW — column AC
     }));
 }
 
